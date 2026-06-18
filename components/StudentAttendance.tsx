@@ -1,7 +1,7 @@
 "use client";
 
 import { Camera, CheckCircle2, Loader2, RefreshCw, Send } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, FormEvent } from "react";
 import { displayDateTime, statusLabel } from "@/lib/attendance";
 import type { AttendanceStatus } from "@/lib/types";
 
@@ -39,15 +39,50 @@ function exactTime(value: string) {
   });
 }
 
+function fileToImage(file: File) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = reject;
+      image.src = String(reader.result || "");
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function compressPhoto(file: File) {
+  const image = await fileToImage(file);
+  const maxWidth = 900;
+  const maxHeight = 900;
+  const scale = Math.min(1, maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Photo could not be prepared.");
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+  let quality = 0.72;
+  let dataUrl = canvas.toDataURL("image/jpeg", quality);
+  while (dataUrl.length > 620_000 && quality > 0.42) {
+    quality -= 0.08;
+    dataUrl = canvas.toDataURL("image/jpeg", quality);
+  }
+  return dataUrl;
+}
+
 export function StudentAttendance({ sessionToken }: { sessionToken: string }) {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
   const [session, setSession] = useState<PublicSession | null>(null);
   const [students, setStudents] = useState<PublicStudent[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [studentNumber, setStudentNumber] = useState("");
   const [photo, setPhoto] = useState("");
-  const [cameraReady, setCameraReady] = useState(false);
+  const [preparingPhoto, setPreparingPhoto] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -72,48 +107,22 @@ export function StudentAttendance({ sessionToken }: { sessionToken: string }) {
     }
 
     load();
-    return () => stopCamera();
   }, [sessionToken]);
 
-  async function startCamera() {
+  async function choosePhoto(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
     setError("");
+    setPreparingPhoto(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-      setCameraReady(true);
+      setPhoto(await compressPhoto(file));
     } catch {
-      setError("Camera permission is required before submitting attendance.");
+      setError("The photo could not be prepared. Please take another photo.");
+    } finally {
+      setPreparingPhoto(false);
     }
-  }
-
-  function stopCamera() {
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
-    setCameraReady(false);
-  }
-
-  function capturePhoto() {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const maxWidth = 640;
-    const maxHeight = 480;
-    const scale = Math.min(1, maxWidth / video.videoWidth, maxHeight / video.videoHeight);
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(video.videoWidth * scale);
-    canvas.height = Math.round(video.videoHeight * scale);
-
-    const context = canvas.getContext("2d");
-    if (!context) return;
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    setPhoto(canvas.toDataURL("image/jpeg", 0.5));
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -147,7 +156,6 @@ export function StudentAttendance({ sessionToken }: { sessionToken: string }) {
       return;
     }
 
-    stopCamera();
     setSuccess(payload);
   }
 
@@ -243,31 +251,44 @@ export function StudentAttendance({ sessionToken }: { sessionToken: string }) {
           ) : null}
 
           <div className="grid gap-3">
-            <div className="aspect-[4/3] overflow-hidden rounded border border-line bg-ink">
+            <div className="grid min-h-64 place-items-center overflow-hidden rounded border border-line bg-ink sm:min-h-80">
               {photo ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={photo} alt="Captured attendance preview" className="h-full w-full object-cover" />
+                <img src={photo} alt="Captured attendance preview" className="max-h-[60vh] w-full object-contain" />
               ) : (
-                <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
+                <div className="grid gap-3 px-6 py-10 text-center text-white">
+                  <Camera className="mx-auto text-white/80" size={44} />
+                  <p className="text-lg font-bold">Take a clear face photo</p>
+                  <p className="text-sm font-semibold text-white/70">Your phone camera will open so you can frame the photo properly.</p>
+                </div>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              capture="user"
+              onChange={choosePhoto}
+              className="sr-only"
+            />
+            <div className="grid gap-2 sm:grid-cols-2">
               <button
                 type="button"
-                onClick={photo ? () => setPhoto("") : startCamera}
+                onClick={() => photoInputRef.current?.click()}
+                disabled={preparingPhoto}
                 className="focus-ring inline-flex items-center justify-center gap-2 rounded border border-line bg-paper px-4 py-3 font-semibold text-ink"
               >
-                {photo ? <RefreshCw size={18} /> : <Camera size={18} />}
-                {photo ? "Retake" : cameraReady ? "Camera ready" : "Start camera"}
+                {preparingPhoto ? <Loader2 className="animate-spin" size={18} /> : photo ? <RefreshCw size={18} /> : <Camera size={18} />}
+                {preparingPhoto ? "Preparing" : photo ? "Retake photo" : "Open camera"}
               </button>
               <button
                 type="button"
-                onClick={capturePhoto}
-                disabled={!cameraReady || Boolean(photo)}
+                onClick={() => setPhoto("")}
+                disabled={!photo || preparingPhoto}
                 className="focus-ring inline-flex items-center justify-center gap-2 rounded bg-ledger px-4 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <Camera size={18} />
-                Capture
+                <RefreshCw size={18} />
+                Clear photo
               </button>
             </div>
           </div>

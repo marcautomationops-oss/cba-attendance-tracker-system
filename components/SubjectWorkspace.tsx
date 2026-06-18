@@ -896,16 +896,18 @@ function CurrentTab({
   return (
     <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(320px,460px)_minmax(0,1fr)] 2xl:grid-cols-[520px_minmax(0,1fr)]">
       {activeSession && activeAttendanceLink ? (
-        <div className="grid gap-3">
+        <div className="grid min-w-0 gap-3">
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => onDeleteSession(activeSession)}
+              className="focus-ring inline-flex w-auto items-center justify-center gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-700 hover:border-red-700"
+            >
+              <Trash2 size={16} />
+              Delete session
+            </button>
+          </div>
           <QRCodeDisplay link={activeAttendanceLink} />
-          <button
-            type="button"
-            onClick={() => onDeleteSession(activeSession)}
-            className="focus-ring inline-flex w-full items-center justify-center gap-2 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 hover:border-red-700"
-          >
-            <Trash2 size={16} />
-            Delete session
-          </button>
         </div>
       ) : (
         <section className="min-w-0 rounded border border-line bg-white p-5 shadow-sm 2xl:p-7">
