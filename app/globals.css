@@ -1,0 +1,160 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: "Inter Tight";
+  --font-brand: "Audiowide";
+  --font-body: "Inter";
+  --font-mono: "Inter";
+  --cockpit-navy: #061426;
+  --cockpit-navy-2: #071b33;
+  --cockpit-bg: #f4f9ff;
+  --cockpit-grid: #9fc0e8;
+  --cockpit-line: #9fb9d6;
+  --cockpit-text: #071529;
+  --cockpit-muted: #6f8197;
+  --cockpit-blue: #2f6fea;
+  --cockpit-green: #17b26a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--cockpit-bg);
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  color: var(--cockpit-text);
+  background: var(--cockpit-bg);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.focus-ring {
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-pool focus-visible:ring-offset-2 focus-visible:ring-offset-paper;
+}
+
+.status-on_time {
+  @apply border-green-700 bg-green-50 text-green-800;
+}
+
+.status-late {
+  @apply border-orange-700 bg-orange-50 text-orange-800;
+}
+
+.status-absent {
+  @apply border-gray-500 bg-gray-100 text-gray-700;
+}
+
+.status-sick,
+.status-leave,
+.status-excused {
+  @apply border-pool bg-blue-50 text-pool;
+}
+
+.cockpit-shell {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background-color: var(--cockpit-bg);
+  background-image:
+    linear-gradient(rgba(159, 192, 232, 0.78) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(159, 192, 232, 0.78) 1px, transparent 1px),
+    radial-gradient(ellipse 138% 105% at 50% 14%, rgba(47, 111, 234, 0.18) 0%, rgba(95, 151, 235, 0.13) 30%, rgba(183, 208, 238, 0.09) 62%, rgba(244, 249, 255, 0) 90%),
+    linear-gradient(180deg, rgba(47, 111, 234, 0.09) 0%, rgba(126, 170, 235, 0.09) 38%, rgba(205, 225, 248, 0.1) 74%, rgba(244, 249, 255, 0.04) 100%);
+  background-size: 56px 56px, 56px 56px, auto, auto;
+  background-attachment: scroll, scroll, fixed, fixed;
+}
+
+.cockpit-shell::before {
+  content: "";
+  position: absolute;
+  inset: 126px 32px 54px;
+  pointer-events: none;
+  border: 1px solid rgba(159, 185, 214, 0.3);
+  border-bottom: 0;
+  clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px), 0 14px);
+}
+
+.cockpit-card {
+  position: relative;
+  border: 1px solid rgba(159, 185, 214, 0.76);
+  background: rgba(255, 255, 255, 0.96);
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
+  box-shadow: 0 22px 58px rgba(7, 21, 41, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.cockpit-card::before,
+.cockpit-card::after {
+  content: "";
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  pointer-events: none;
+}
+
+.cockpit-card::before {
+  top: -1px;
+  right: -1px;
+  border-top: 1px solid var(--cockpit-line);
+  border-right: 1px solid var(--cockpit-line);
+}
+
+.cockpit-card::after {
+  bottom: -1px;
+  left: -1px;
+  border-bottom: 1px solid var(--cockpit-line);
+  border-left: 1px solid var(--cockpit-line);
+}
+
+.cockpit-add-card {
+  border-color: rgba(47, 111, 234, 0.42);
+  border-width: 2px;
+  background: rgba(244, 249, 255, 0.78);
+}
+
+.cockpit-add-card::before,
+.cockpit-add-card::after {
+  border-color: rgba(47, 111, 234, 0.46);
+}
+
+.cockpit-rule {
+  position: relative;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(159, 185, 214, 0.7), transparent);
+}
+
+.cockpit-rule::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: calc(50% - 4px);
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--cockpit-line);
+  background: white;
+  transform: rotate(45deg);
+}
+
+.cockpit-plus {
+  position: relative;
+  border: 1px solid rgba(47, 111, 234, 0.52);
+  border-radius: 999px;
+  color: var(--cockpit-navy);
+}
