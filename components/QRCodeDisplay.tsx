@@ -2,9 +2,9 @@
 
 import QRCode from "qrcode";
 import { Copy, QrCode } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
-export function QRCodeDisplay({ link }: { link: string }) {
+export function QRCodeDisplay({ link, children }: { link: string; children?: ReactNode }) {
   const [dataUrl, setDataUrl] = useState("");
   const [copied, setCopied] = useState(false);
 
@@ -51,6 +51,7 @@ export function QRCodeDisplay({ link }: { link: string }) {
           <Copy size={16} />
           {copied ? "Copied" : "Copy link"}
         </button>
+        {children}
       </div>
     </div>
   );
