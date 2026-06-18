@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { jsonError, parseJson, requireTeacher } from "@/lib/api";
+import { defaultAbsentTemplate, defaultLateTemplate } from "@/lib/sms";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 type Context = {
@@ -10,6 +11,8 @@ type Body = {
   automatic_sms?: boolean;
   late_limit?: number;
   absent_limit?: number;
+  late_template?: string;
+  absent_template?: string;
   reset_period?: boolean;
 };
 
@@ -19,7 +22,9 @@ async function defaults() {
   return {
     automatic_sms: Boolean(data?.default_automatic_sms),
     late_limit: Number(data?.default_late_limit || 3),
-    absent_limit: Number(data?.default_absent_limit || 2)
+    absent_limit: Number(data?.default_absent_limit || 2),
+    late_template: defaultLateTemplate,
+    absent_template: defaultAbsentTemplate
   };
 }
 
@@ -47,11 +52,17 @@ export async function GET(request: Request, context: Context) {
 
   return NextResponse.json({
     settings:
-      data || {
-        subject_id: id,
-        ...base,
-        alert_period_start: new Date().toISOString()
-      }
+      data
+        ? {
+            ...data,
+            late_template: data.late_template || base.late_template,
+            absent_template: data.absent_template || base.absent_template
+          }
+        : {
+            subject_id: id,
+            ...base,
+            alert_period_start: new Date().toISOString()
+          }
   });
 }
 
@@ -74,11 +85,18 @@ export async function PATCH(request: Request, context: Context) {
     automatic_sms: body.automatic_sms ?? existing?.automatic_sms ?? base.automatic_sms,
     late_limit: Number(body.late_limit || existing?.late_limit || base.late_limit),
     absent_limit: Number(body.absent_limit || existing?.absent_limit || base.absent_limit),
+    late_template: body.late_template ?? existing?.late_template ?? base.late_template,
+    absent_template: body.absent_template ?? existing?.absent_template ?? base.absent_template,
     alert_period_start: body.reset_period ? new Date().toISOString() : existing?.alert_period_start || new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
 
   const { data, error } = await supabase.from("subject_alert_settings").upsert(row, { onConflict: "subject_id" }).select("*").single();
-  if (error) return jsonError(error.message, 500);
+  if (error) {
+    if (error.message.includes("late_template") || error.message.includes("absent_template") || error.message.includes("schema cache")) {
+      return jsonError("Run the updated supabase/schema.sql before saving SMS templates.", 500);
+    }
+    return jsonError(error.message, 500);
+  }
   return NextResponse.json({ settings: data });
 }

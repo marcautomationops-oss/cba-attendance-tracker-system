@@ -123,9 +123,11 @@ export async function GET(request: Request, context: Context) {
     recordsByStudent.set(record.student_id, list);
   }
 
-  const alertByStudent = new Map<string, string>();
+  const alertByStudent = new Map<string, { late: string; absent: string }>();
   for (const alert of alerts || []) {
-    if (!alertByStudent.has(alert.student_id)) alertByStudent.set(alert.student_id, alert.sent_at ? "Sent" : "Ready");
+    const current = alertByStudent.get(alert.student_id) || { late: "Not sent", absent: "Not sent" };
+    current[alert.trigger_type as "late" | "absent"] = alert.sent_at ? "Sent" : "Failed";
+    alertByStudent.set(alert.student_id, current);
   }
 
   const recordsByClosedSession = new Map<string, AttendanceRecord[]>();
@@ -188,13 +190,15 @@ export async function GET(request: Request, context: Context) {
       student_id: student.id,
       student_number: student.student_number,
       full_name: student.full_name,
+      contact_number: student.contact_number,
       attendance_percentage: attendancePercentage,
       on_time_count: onTime,
       late_count: late,
       absent_count: absent,
       excused_count: excused,
       last_status: lastStatus,
-      sms_alert_status: alertByStudent.get(student.id) || "None",
+      sms_alert_status: alertByStudent.get(student.id)?.late === "Sent" || alertByStudent.get(student.id)?.absent === "Sent" ? "Sent" : "Not sent",
+      sms_alerts: alertByStudent.get(student.id) || { late: "Not sent", absent: "Not sent" },
       trend,
       risk,
       ...action,

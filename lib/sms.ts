@@ -6,6 +6,12 @@ type SmsResult = {
   providerStatus: string;
 };
 
+export const defaultLateTemplate =
+  "Hello {student}, you have reached {late_count} late record(s) in {subject}. Please attend class on time.";
+
+export const defaultAbsentTemplate =
+  "Hello {student}, you have reached {absent_count} absence(s) in {subject}. Please check with your teacher.";
+
 export async function sendSemaphoreSms(params: {
   apiKey: string;
   senderName?: string | null;
@@ -39,8 +45,20 @@ export function getSemaphoreConfig() {
   };
 }
 
-export function alertMessage(subjectName: string) {
-  return `You have reached the attendance warning limit for ${subjectName}. Please check with your teacher.`;
+export function renderAlertMessage(params: {
+  template: string | null | undefined;
+  triggerType: "late" | "absent";
+  subjectName: string;
+  studentName: string;
+  lateCount: number;
+  absentCount: number;
+}) {
+  const fallback = params.triggerType === "late" ? defaultLateTemplate : defaultAbsentTemplate;
+  return (params.template || fallback)
+    .replaceAll("{student}", params.studentName)
+    .replaceAll("{subject}", params.subjectName)
+    .replaceAll("{late_count}", String(params.lateCount))
+    .replaceAll("{absent_count}", String(params.absentCount));
 }
 
 export async function checkSmsAlertAfterAttendance(params: {
@@ -84,6 +102,7 @@ export async function checkSmsAlertAfterAttendance(params: {
     .gte("submitted_at", periodStart);
 
   if (countError || (countRows?.length || 0) < threshold) return;
+  const triggerCount = countRows?.length || 0;
 
   const { data: existing } = await supabase
     .from("sms_alerts")
@@ -96,7 +115,14 @@ export async function checkSmsAlertAfterAttendance(params: {
 
   if (existing) return;
 
-  const message = alertMessage(params.session.subject || params.session.class_name);
+  const message = renderAlertMessage({
+    template: triggerType === "late" ? alertSettings?.late_template : alertSettings?.absent_template,
+    triggerType,
+    subjectName: params.session.subject || params.session.class_name,
+    studentName: params.student.full_name,
+    lateCount: triggerType === "late" ? triggerCount : 0,
+    absentCount: triggerType === "absent" ? triggerCount : 0
+  });
   const result = await sendSemaphoreSms({
     apiKey,
     senderName: semaphore.senderName,

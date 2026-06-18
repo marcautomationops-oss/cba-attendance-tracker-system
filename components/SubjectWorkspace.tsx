@@ -80,6 +80,7 @@ type IndividualAnalytics = {
   student_id: string;
   student_number: string;
   full_name: string;
+  contact_number: string | null;
   attendance_percentage: number;
   on_time_count: number;
   late_count: number;
@@ -87,6 +88,10 @@ type IndividualAnalytics = {
   excused_count: number;
   last_status: AttendanceStatus;
   sms_alert_status: string;
+  sms_alerts: {
+    late: string;
+    absent: string;
+  };
   trend: TrendLabel;
   risk: RiskLevel;
   action: ActionLabel;
@@ -137,9 +142,13 @@ type AlertSettings = {
   automatic_sms: boolean;
   late_limit: number;
   absent_limit: number;
+  late_template: string;
+  absent_template: string;
   alert_period_start: string;
   schema_missing?: boolean;
 };
+
+type AlertTrigger = "late" | "absent";
 
 const tabs: { id: Tab; label: string; icon: ComponentType<{ size?: number }> }[] = [
   { id: "current", label: "Current", icon: Radio },
@@ -618,16 +627,22 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
     await loadAnalytics();
   }
 
-  async function sendSms(studentId: string, triggerType: "late" | "absent") {
+  async function sendSms(studentId: string, triggerType: AlertTrigger, message?: string) {
+    setError("");
+    setNotice("");
     const response = await fetch(`/api/subjects/${subjectId}/alerts/send`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ student_id: studentId, trigger_type: triggerType })
+      body: JSON.stringify({ student_id: studentId, trigger_type: triggerType, message })
     });
     const payload = await response.json();
-    if (!response.ok) return setError(payload.error || "SMS could not be sent.");
+    if (!response.ok) {
+      setError(payload.error || "SMS could not be sent.");
+      return false;
+    }
     setNotice("SMS alert sent.");
     await loadAnalytics();
+    return true;
   }
 
   async function deleteSession(sessionId: string) {
@@ -1788,6 +1803,23 @@ function AnalyticsPanel({ analytics }: { analytics: AnalyticsPayload | null; cha
   );
 }
 
+function triggerForStudent(student: IndividualAnalytics, alertSettings: AlertSettings | null): AlertTrigger | null {
+  const lateLimit = alertSettings?.late_limit || 3;
+  const absentLimit = alertSettings?.absent_limit || 2;
+  if (student.absent_count >= absentLimit) return "absent";
+  if (student.late_count >= lateLimit) return "late";
+  return null;
+}
+
+function renderSmsTemplate(template: string, student: IndividualAnalytics, triggerType: AlertTrigger, subjectName = "this subject") {
+  return template
+    .replaceAll("{student}", student.full_name)
+    .replaceAll("{subject}", subjectName)
+    .replaceAll("{late_count}", String(student.late_count))
+    .replaceAll("{absent_count}", String(student.absent_count))
+    .replaceAll("{reason}", triggerType === "late" ? "late records" : "absences");
+}
+
 function AlertsPanel({
   analytics,
   alertSettings,
@@ -1801,89 +1833,180 @@ function AlertsPanel({
   savingAlerts: boolean;
   setAlertSettings: (value: AlertSettings) => void;
   saveAlertSettings: (reset?: boolean) => void;
-  sendSms: (studentId: string, triggerType: "late" | "absent") => void;
+  sendSms: (studentId: string, triggerType: AlertTrigger, message?: string) => Promise<boolean>;
 }) {
+  const [smsDraft, setSmsDraft] = useState<{ student: IndividualAnalytics; triggerType: AlertTrigger; message: string } | null>(null);
+  const [sending, setSending] = useState(false);
+
+  function openComposer(student: IndividualAnalytics, triggerType: AlertTrigger) {
+    if (!alertSettings) return;
+    const template = triggerType === "late" ? alertSettings.late_template : alertSettings.absent_template;
+    setSmsDraft({ student, triggerType, message: renderSmsTemplate(template, student, triggerType) });
+  }
+
+  async function confirmSend() {
+    if (!smsDraft) return;
+    setSending(true);
+    const sent = await sendSms(smsDraft.student.student_id, smsDraft.triggerType, smsDraft.message);
+    setSending(false);
+    if (sent) setSmsDraft(null);
+  }
+
   return (
-    <section className="grid min-w-0 gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-      <div className="min-w-0 rounded border border-line bg-white p-5 shadow-sm">
-        <h2 className="mb-4 text-2xl font-bold text-ink">SMS alerts</h2>
-        {alertSettings ? (
-          <div className="grid gap-4">
-            <label className="flex items-center justify-between rounded border border-line bg-paper px-3 py-3 text-sm font-bold text-graphite">
-              Automatic SMS
-              <input
-                type="checkbox"
-                checked={alertSettings.automatic_sms}
-                onChange={(event) => setAlertSettings({ ...alertSettings, automatic_sms: event.target.checked })}
-                className="h-5 w-5"
-              />
-            </label>
-            <label className="grid gap-2 text-sm font-bold text-graphite">
-              Late limit
-              <input
-                type="number"
-                min={1}
-                value={alertSettings.late_limit}
-                onChange={(event) => setAlertSettings({ ...alertSettings, late_limit: Number(event.target.value) })}
-                className="focus-ring rounded border border-line bg-paper px-3 py-3 text-ink"
-              />
-            </label>
-            <label className="grid gap-2 text-sm font-bold text-graphite">
-              Absent limit
-              <input
-                type="number"
-                min={1}
-                value={alertSettings.absent_limit}
-                onChange={(event) => setAlertSettings({ ...alertSettings, absent_limit: Number(event.target.value) })}
-                className="focus-ring rounded border border-line bg-paper px-3 py-3 text-ink"
-              />
-            </label>
-            <p className="rounded border border-line bg-paper px-3 py-3 text-sm text-graphite">
-              Period start: <span className="font-bold text-ink">{displayDateTime(alertSettings.alert_period_start)}</span>
-            </p>
-            {alertSettings.schema_missing ? (
-              <p className="rounded border border-brass bg-orange-50 px-3 py-3 text-sm font-bold text-orange-800">
-                Run the updated Supabase schema before saving alert settings.
-              </p>
-            ) : null}
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-              <ControlButton type="button" onClick={() => saveAlertSettings(false)} disabled={savingAlerts}>
-                Save alert settings
-              </ControlButton>
-              <button type="button" onClick={() => saveAlertSettings(true)} disabled={savingAlerts} className="focus-ring rounded border border-line bg-white px-4 py-3 font-bold text-ink hover:border-pool disabled:opacity-60">
-                Reset alert period
-              </button>
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-graphite">Loading alert settings</p>
-        )}
-      </div>
-      <div className="min-w-0 rounded border border-line bg-white p-5 shadow-sm">
-        <h2 className="mb-4 text-2xl font-bold text-ink">Needs attention</h2>
-        <div className="grid gap-2">
-          {(analytics?.needs_attention || []).map((student) => (
-            <div key={student.student_id} className="grid gap-3 rounded border border-line bg-paper p-3 md:grid-cols-[1fr_auto_auto] md:items-center">
-              <div>
-                <p className="font-bold text-ink">{student.full_name}</p>
-                <p className="font-mono text-xs text-graphite">
-                  {student.student_number} / Late {student.late_count} / Absent {student.absent_count}
-                </p>
+    <>
+      <section className="grid min-w-0 gap-5 xl:grid-cols-[420px_minmax(0,1fr)]">
+        <div className="min-w-0 rounded border border-line bg-white p-5 shadow-sm">
+          <h2 className="mb-4 text-2xl font-bold text-ink">SMS alerts</h2>
+          {alertSettings ? (
+            <div className="grid gap-4">
+              <label className="flex items-center justify-between rounded border border-line bg-paper px-3 py-3 text-sm font-bold text-graphite">
+                Automatic SMS
+                <input
+                  type="checkbox"
+                  checked={alertSettings.automatic_sms}
+                  onChange={(event) => setAlertSettings({ ...alertSettings, automatic_sms: event.target.checked })}
+                  className="h-5 w-5"
+                />
+              </label>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                <label className="grid gap-2 text-sm font-bold text-graphite">
+                  Late limit
+                  <input
+                    type="number"
+                    min={1}
+                    value={alertSettings.late_limit}
+                    onChange={(event) => setAlertSettings({ ...alertSettings, late_limit: Number(event.target.value) })}
+                    className="focus-ring rounded border border-line bg-paper px-3 py-3 text-ink"
+                  />
+                </label>
+                <label className="grid gap-2 text-sm font-bold text-graphite">
+                  Absent limit
+                  <input
+                    type="number"
+                    min={1}
+                    value={alertSettings.absent_limit}
+                    onChange={(event) => setAlertSettings({ ...alertSettings, absent_limit: Number(event.target.value) })}
+                    className="focus-ring rounded border border-line bg-paper px-3 py-3 text-ink"
+                  />
+                </label>
               </div>
-              <span className="text-sm font-bold text-graphite">{student.sms_alert_status}</span>
-              <button
-                type="button"
-                onClick={() => sendSms(student.student_id, student.late_count >= (alertSettings?.late_limit || 3) ? "late" : "absent")}
-                className="focus-ring rounded border border-line bg-white px-3 py-2 text-sm font-bold text-ink hover:border-pool"
-              >
-                Send SMS
+              <label className="grid gap-2 text-sm font-bold text-graphite">
+                Late template
+                <textarea
+                  value={alertSettings.late_template}
+                  onChange={(event) => setAlertSettings({ ...alertSettings, late_template: event.target.value })}
+                  rows={4}
+                  className="focus-ring resize-y rounded border border-line bg-paper px-3 py-3 text-sm font-semibold leading-6 text-ink"
+                />
+              </label>
+              <label className="grid gap-2 text-sm font-bold text-graphite">
+                Absent template
+                <textarea
+                  value={alertSettings.absent_template}
+                  onChange={(event) => setAlertSettings({ ...alertSettings, absent_template: event.target.value })}
+                  rows={4}
+                  className="focus-ring resize-y rounded border border-line bg-paper px-3 py-3 text-sm font-semibold leading-6 text-ink"
+                />
+              </label>
+              <p className="rounded border border-line bg-paper px-3 py-3 text-sm text-graphite">
+                Placeholders: <span className="font-mono text-xs font-bold text-ink">{"{student} {subject} {late_count} {absent_count}"}</span>
+              </p>
+              <p className="rounded border border-line bg-paper px-3 py-3 text-sm text-graphite">
+                Period start: <span className="font-bold text-ink">{displayDateTime(alertSettings.alert_period_start)}</span>
+              </p>
+              {alertSettings.schema_missing ? (
+                <p className="rounded border border-brass bg-orange-50 px-3 py-3 text-sm font-bold text-orange-800">
+                  Run the updated Supabase schema before saving alert settings.
+                </p>
+              ) : null}
+              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                <ControlButton type="button" onClick={() => saveAlertSettings(false)} disabled={savingAlerts}>
+                  Save alert settings
+                </ControlButton>
+                <button type="button" onClick={() => saveAlertSettings(true)} disabled={savingAlerts} className="focus-ring rounded border border-line bg-white px-4 py-3 font-bold text-ink hover:border-pool disabled:opacity-60">
+                  Reset alert period
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-graphite">Loading alert settings</p>
+          )}
+        </div>
+        <div className="min-w-0 rounded border border-line bg-white p-5 shadow-sm">
+          <h2 className="mb-4 text-2xl font-bold text-ink">Needs attention</h2>
+          <div className="grid gap-2">
+            {(analytics?.needs_attention || []).map((student) => {
+              const triggerType = triggerForStudent(student, alertSettings);
+              const status = triggerType ? student.sms_alerts?.[triggerType] || "Not sent" : "No threshold";
+              const canSend = Boolean(triggerType && student.contact_number);
+              return (
+                <div key={student.student_id} className="grid gap-3 rounded border border-line bg-paper p-3 lg:grid-cols-[1fr_120px_120px_120px] lg:items-center">
+                  <div>
+                    <p className="font-bold text-ink">{student.full_name}</p>
+                    <p className="font-mono text-xs text-graphite">
+                      {student.student_number} / Late {student.late_count} / Absent {student.absent_count}
+                    </p>
+                  </div>
+                  <span className={`rounded border px-2.5 py-1 text-center text-xs font-bold ${triggerType === "absent" ? "border-red-200 bg-red-50 text-red-700" : triggerType === "late" ? "border-orange-200 bg-orange-50 text-orange-700" : "border-line bg-white text-graphite"}`}>
+                    {triggerType === "absent" ? "Absent alert" : triggerType === "late" ? "Late alert" : "No threshold"}
+                  </span>
+                  <span className={`rounded border px-2.5 py-1 text-center text-xs font-bold ${student.contact_number ? "border-green-200 bg-green-50 text-green-700" : "border-gray-300 bg-white text-graphite"}`}>
+                    {student.contact_number ? "Has number" : "No number"}
+                  </span>
+                  <div className="grid gap-2">
+                    <span className="text-center text-xs font-bold text-graphite">{student.contact_number ? status : "Cannot send"}</span>
+                    <button
+                      type="button"
+                      onClick={() => triggerType && openComposer(student, triggerType)}
+                      disabled={!canSend}
+                      className="focus-ring rounded border border-line bg-white px-3 py-2 text-sm font-bold text-ink hover:border-pool disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Send SMS
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+            {!analytics?.needs_attention?.length ? <p className="rounded border border-dashed border-line p-5 text-center text-sm text-graphite">No students have reached the warning limits.</p> : null}
+          </div>
+        </div>
+      </section>
+
+      {smsDraft ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/35 px-4 py-8">
+          <section className="w-full max-w-xl rounded border border-line bg-white p-5 shadow-soft">
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <p className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-graphite">{smsDraft.triggerType === "late" ? "Late warning" : "Absent warning"}</p>
+                <h3 className="mt-1 text-2xl font-bold text-ink">{smsDraft.student.full_name}</h3>
+                <p className="mt-1 text-sm font-semibold text-graphite">{smsDraft.student.contact_number}</p>
+              </div>
+              <button type="button" onClick={() => setSmsDraft(null)} className="focus-ring rounded border border-line px-3 py-2 text-sm font-bold text-graphite">
+                <X size={16} />
               </button>
             </div>
-          ))}
-          {!analytics?.needs_attention?.length ? <p className="rounded border border-dashed border-line p-5 text-center text-sm text-graphite">No students have reached the warning limits.</p> : null}
+            <label className="grid gap-2 text-sm font-bold text-graphite">
+              Message
+              <textarea
+                value={smsDraft.message}
+                onChange={(event) => setSmsDraft({ ...smsDraft, message: event.target.value })}
+                rows={6}
+                className="focus-ring resize-y rounded border border-line bg-paper px-3 py-3 text-sm font-semibold leading-6 text-ink"
+              />
+            </label>
+            <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button type="button" onClick={() => setSmsDraft(null)} className="focus-ring rounded border border-line bg-white px-4 py-3 font-bold text-ink hover:border-pool">
+                Cancel
+              </button>
+              <ControlButton type="button" onClick={confirmSend} disabled={sending || !smsDraft.message.trim()}>
+                {sending ? <Loader2 className="animate-spin" size={16} /> : null}
+                Send SMS
+              </ControlButton>
+            </div>
+          </section>
         </div>
-      </div>
-    </section>
+      ) : null}
+    </>
   );
 }
 

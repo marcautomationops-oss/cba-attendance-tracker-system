@@ -121,10 +121,18 @@ create table if not exists subject_alert_settings (
   automatic_sms boolean not null default false,
   late_limit integer not null default 3,
   absent_limit integer not null default 2,
+  late_template text,
+  absent_template text,
   alert_period_start timestamptz not null default now(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table subject_alert_settings
+add column if not exists late_template text;
+
+alter table subject_alert_settings
+add column if not exists absent_template text;
 
 create table if not exists sms_alerts (
   id uuid primary key default gen_random_uuid(),

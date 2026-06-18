@@ -105,6 +105,8 @@ export type SubjectAlertSettings = {
   automatic_sms: boolean;
   late_limit: number;
   absent_limit: number;
+  late_template: string | null;
+  absent_template: string | null;
   alert_period_start: string;
   created_at: string;
   updated_at: string;

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { alertMessage, getSemaphoreConfig, sendSemaphoreSms } from "@/lib/sms";
+import { renderAlertMessage, getSemaphoreConfig, sendSemaphoreSms } from "@/lib/sms";
 import { jsonError, parseJson, requireTeacher } from "@/lib/api";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import type { AppSettings, SubjectAlertSettings } from "@/lib/types";
@@ -11,6 +11,7 @@ type Context = {
 type Body = {
   student_id?: string;
   trigger_type?: "late" | "absent";
+  message?: string;
 };
 
 export async function POST(request: Request, context: Context) {
@@ -41,7 +42,26 @@ export async function POST(request: Request, context: Context) {
     body.trigger_type === "late"
       ? subjectAlerts?.late_limit ?? appSettings?.default_late_limit ?? 3
       : subjectAlerts?.absent_limit ?? appSettings?.default_absent_limit ?? 2;
-  const message = alertMessage(subject.name);
+  const { data: countRows } = await supabase
+    .from("attendance_records")
+    .select("id, attendance_sessions!inner(subject_id)")
+    .eq("student_id", student.id)
+    .eq("status", body.trigger_type)
+    .eq("attendance_sessions.subject_id", id)
+    .gte("submitted_at", periodStart);
+
+  const triggerCount = countRows?.length || 0;
+  const message =
+    typeof body.message === "string" && body.message.trim()
+      ? body.message.trim()
+      : renderAlertMessage({
+          template: body.trigger_type === "late" ? subjectAlerts?.late_template : subjectAlerts?.absent_template,
+          triggerType: body.trigger_type,
+          subjectName: subject.name,
+          studentName: student.full_name,
+          lateCount: body.trigger_type === "late" ? triggerCount : 0,
+          absentCount: body.trigger_type === "absent" ? triggerCount : 0
+        });
 
   const result = await sendSemaphoreSms({
     apiKey: semaphore.apiKey,
