@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { renderAlertMessage, getSemaphoreConfig, sendSemaphoreSms } from "@/lib/sms";
 import { jsonError, parseJson, requireTeacher } from "@/lib/api";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import type { AppSettings, SubjectAlertSettings } from "@/lib/types";
+import type { SubjectAlertSettings } from "@/lib/types";
 
 type Context = {
   params: Promise<{ id: string }>;
@@ -22,14 +22,12 @@ export async function POST(request: Request, context: Context) {
   if (!body?.student_id || !body.trigger_type) return jsonError("Student and alert type are required.");
 
   const supabase = getSupabaseAdmin();
-  const [{ data: subject }, { data: student }, { data: settings }, { data: alertSettings }] = await Promise.all([
+  const [{ data: subject }, { data: student }, { data: alertSettings }] = await Promise.all([
     supabase.from("subjects").select("name").eq("id", id).single(),
     supabase.from("students").select("*").eq("id", body.student_id).single(),
-    supabase.from("app_settings").select("*").eq("id", 1).maybeSingle(),
     supabase.from("subject_alert_settings").select("*").eq("subject_id", id).maybeSingle()
   ]);
 
-  const appSettings = settings as AppSettings | null;
   const subjectAlerts = alertSettings as SubjectAlertSettings | null;
   const semaphore = getSemaphoreConfig();
 
@@ -38,17 +36,13 @@ export async function POST(request: Request, context: Context) {
   if (!semaphore.apiKey) return jsonError("Set SEMAPHORE_API_KEY in the server environment first.");
 
   const periodStart = subjectAlerts?.alert_period_start || new Date(0).toISOString();
-  const threshold =
-    body.trigger_type === "late"
-      ? subjectAlerts?.late_limit ?? appSettings?.default_late_limit ?? 3
-      : subjectAlerts?.absent_limit ?? appSettings?.default_absent_limit ?? 2;
   const { data: countRows } = await supabase
     .from("attendance_records")
-    .select("id, attendance_sessions!inner(subject_id)")
+    .select("id, attendance_sessions!inner(subject_id,start_time)")
     .eq("student_id", student.id)
     .eq("status", body.trigger_type)
     .eq("attendance_sessions.subject_id", id)
-    .gte("submitted_at", periodStart);
+    .gte("attendance_sessions.start_time", periodStart);
 
   const triggerCount = countRows?.length || 0;
   const message =
@@ -77,14 +71,14 @@ export async function POST(request: Request, context: Context) {
         student_id: student.id,
         subject_id: id,
         trigger_type: body.trigger_type,
-        threshold,
+        threshold: triggerCount,
         phone_number: student.contact_number,
         message,
         sent_at: result.sent ? new Date().toISOString() : null,
         provider_status: result.providerStatus,
         alert_period_start: periodStart
       },
-      { onConflict: "student_id,subject_id,trigger_type,alert_period_start" }
+      { onConflict: "student_id,subject_id,trigger_type,threshold,alert_period_start" }
     )
     .select("*")
     .single();

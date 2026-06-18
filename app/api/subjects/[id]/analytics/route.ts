@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { jsonError, requireTeacher } from "@/lib/api";
+import { finalizeClosedSessionsAbsences } from "@/lib/finalizeAttendance";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import type { AttendanceRecord, AttendanceSession, AttendanceStatus, Student } from "@/lib/types";
 
@@ -89,6 +90,7 @@ export async function GET(request: Request, context: Context) {
   const closedSessions = typedSessions
     .filter((session) => new Date(session.close_time).getTime() < nowMs)
     .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+  await finalizeClosedSessionsAbsences(closedSessions, { sendSmsAlerts: true });
   const closedSessionIds = new Set(closedSessions.map((session) => session.id));
   const sessionIds = typedSessions.map((session) => session.id);
   let records: AttendanceRecord[] = [];
@@ -123,11 +125,9 @@ export async function GET(request: Request, context: Context) {
     recordsByStudent.set(record.student_id, list);
   }
 
-  const alertByStudent = new Map<string, { late: string; absent: string }>();
+  const alertStatusByMilestone = new Map<string, string>();
   for (const alert of alerts || []) {
-    const current = alertByStudent.get(alert.student_id) || { late: "Not sent", absent: "Not sent" };
-    current[alert.trigger_type as "late" | "absent"] = alert.sent_at ? "Sent" : "Failed";
-    alertByStudent.set(alert.student_id, current);
+    alertStatusByMilestone.set(`${alert.student_id}:${alert.trigger_type}:${alert.threshold}`, alert.sent_at ? "Sent" : "Failed");
   }
 
   const recordsByClosedSession = new Map<string, AttendanceRecord[]>();
@@ -174,6 +174,10 @@ export async function GET(request: Request, context: Context) {
     const lastStatus = (list[0]?.status || (typedSessions.length ? "absent" : "absent")) as AttendanceStatus;
     const risk = riskForStudent(attendancePercentage, absent, late, closedSessions.length > 0);
     const action = actionForRisk(risk);
+    const sms_alerts = {
+      late: alertStatusByMilestone.get(`${student.id}:late:${late}`) || "Not sent",
+      absent: alertStatusByMilestone.get(`${student.id}:absent:${absent}`) || "Not sent"
+    };
     const trend = trendForStudent(closedSessions, recordBySession);
     const recent_sessions = closedSessions.slice(-8).reverse().map((session) => {
       const record = recordBySession.get(session.id);
@@ -197,8 +201,8 @@ export async function GET(request: Request, context: Context) {
       absent_count: absent,
       excused_count: excused,
       last_status: lastStatus,
-      sms_alert_status: alertByStudent.get(student.id)?.late === "Sent" || alertByStudent.get(student.id)?.absent === "Sent" ? "Sent" : "Not sent",
-      sms_alerts: alertByStudent.get(student.id) || { late: "Not sent", absent: "Not sent" },
+      sms_alert_status: sms_alerts.late === "Sent" || sms_alerts.absent === "Sent" ? "Sent" : "Not sent",
+      sms_alerts,
       trend,
       risk,
       ...action,

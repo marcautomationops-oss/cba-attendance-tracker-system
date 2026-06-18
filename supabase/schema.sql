@@ -123,6 +123,8 @@ create table if not exists subject_alert_settings (
   absent_limit integer not null default 2,
   late_template text,
   absent_template text,
+  late_milestones integer[] not null default array[3,5,7],
+  absent_milestones integer[] not null default array[2,4,6],
   alert_period_start timestamptz not null default now(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -133,6 +135,12 @@ add column if not exists late_template text;
 
 alter table subject_alert_settings
 add column if not exists absent_template text;
+
+alter table subject_alert_settings
+add column if not exists late_milestones integer[] not null default array[3,5,7];
+
+alter table subject_alert_settings
+add column if not exists absent_milestones integer[] not null default array[2,4,6];
 
 create table if not exists sms_alerts (
   id uuid primary key default gen_random_uuid(),
@@ -146,8 +154,18 @@ create table if not exists sms_alerts (
   provider_status text,
   alert_period_start timestamptz not null,
   created_at timestamptz not null default now(),
-  unique(student_id, subject_id, trigger_type, alert_period_start)
+  unique(student_id, subject_id, trigger_type, threshold, alert_period_start)
 );
+
+alter table sms_alerts
+drop constraint if exists sms_alerts_student_id_subject_id_trigger_type_alert_period_start_key;
+
+alter table sms_alerts
+drop constraint if exists sms_alerts_student_id_subject_id_trigger_type_threshold_alert_period_start_key;
+
+alter table sms_alerts
+add constraint sms_alerts_student_id_subject_id_trigger_type_threshold_alert_period_start_key
+unique(student_id, subject_id, trigger_type, threshold, alert_period_start);
 
 create index if not exists idx_students_section on students(section);
 create index if not exists idx_students_active on students(is_active);

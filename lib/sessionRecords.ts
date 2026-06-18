@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { signedStorageUrl } from "@/lib/storage";
+import { finalizeClosedSessionAbsences } from "@/lib/finalizeAttendance";
 import type { AttendanceRecord, AttendanceSession, AttendanceStatus, DashboardRecord, Student } from "@/lib/types";
 
 export type SessionRecordsPayload = {
@@ -52,6 +53,10 @@ export async function getSessionRecords(sessionId: string): Promise<SessionRecor
     const { data, error } = await studentsQuery;
     if (error) throw new Error(error.message);
     students = (data || []) as Student[];
+  }
+
+  if (attendanceClosed) {
+    await finalizeClosedSessionAbsences(typedSession, { sendSmsAlerts: true });
   }
 
   const { data: records, error: recordsError } = await supabase

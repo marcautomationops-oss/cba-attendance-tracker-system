@@ -12,6 +12,17 @@ export const defaultLateTemplate =
 export const defaultAbsentTemplate =
   "Hello {student}, you have reached {absent_count} absence(s) in {subject}. Please check with your teacher.";
 
+export const defaultLateMilestones = [3, 5, 7];
+export const defaultAbsentMilestones = [2, 4, 6];
+
+export function normalizeMilestones(value: unknown, fallback: number[]) {
+  const source = Array.isArray(value) ? value : fallback;
+  const numbers = source
+    .map((item) => Number(item))
+    .filter((item) => Number.isInteger(item) && item > 0);
+  return Array.from(new Set(numbers)).sort((a, b) => a - b);
+}
+
 export async function sendSemaphoreSms(params: {
   apiKey: string;
   senderName?: string | null;
@@ -88,21 +99,22 @@ export async function checkSmsAlertAfterAttendance(params: {
 
   const periodStart = alertSettings?.alert_period_start || new Date(0).toISOString();
   const triggerType = params.status as "late" | "absent";
-  const threshold =
+  const milestones =
     triggerType === "late"
-      ? alertSettings?.late_limit ?? settings?.default_late_limit ?? 3
-      : alertSettings?.absent_limit ?? settings?.default_absent_limit ?? 2;
+      ? normalizeMilestones(alertSettings?.late_milestones, [settings?.default_late_limit || defaultLateMilestones[0], ...defaultLateMilestones])
+      : normalizeMilestones(alertSettings?.absent_milestones, [settings?.default_absent_limit || defaultAbsentMilestones[0], ...defaultAbsentMilestones]);
 
   const { data: countRows, error: countError } = await supabase
     .from("attendance_records")
-    .select("id, attendance_sessions!inner(subject_id)")
+    .select("id, attendance_sessions!inner(subject_id,start_time)")
     .eq("student_id", params.student.id)
     .eq("status", triggerType)
     .eq("attendance_sessions.subject_id", params.session.subject_id)
-    .gte("submitted_at", periodStart);
+    .gte("attendance_sessions.start_time", periodStart);
 
-  if (countError || (countRows?.length || 0) < threshold) return;
+  if (countError) return;
   const triggerCount = countRows?.length || 0;
+  if (!milestones.includes(triggerCount)) return;
 
   const { data: existing } = await supabase
     .from("sms_alerts")
@@ -110,6 +122,7 @@ export async function checkSmsAlertAfterAttendance(params: {
     .eq("student_id", params.student.id)
     .eq("subject_id", params.session.subject_id)
     .eq("trigger_type", triggerType)
+    .eq("threshold", triggerCount)
     .eq("alert_period_start", periodStart)
     .maybeSingle();
 
@@ -134,7 +147,7 @@ export async function checkSmsAlertAfterAttendance(params: {
     student_id: params.student.id,
     subject_id: params.session.subject_id,
     trigger_type: triggerType,
-    threshold,
+    threshold: triggerCount,
     phone_number: params.student.contact_number,
     message,
     sent_at: result.sent ? new Date().toISOString() : null,

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { jsonError, parseJson, requireTeacher } from "@/lib/api";
-import { defaultAbsentTemplate, defaultLateTemplate } from "@/lib/sms";
+import { defaultAbsentMilestones, defaultAbsentTemplate, defaultLateMilestones, defaultLateTemplate, normalizeMilestones } from "@/lib/sms";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 type Context = {
@@ -13,6 +13,8 @@ type Body = {
   absent_limit?: number;
   late_template?: string;
   absent_template?: string;
+  late_milestones?: number[];
+  absent_milestones?: number[];
   reset_period?: boolean;
 };
 
@@ -24,7 +26,9 @@ async function defaults() {
     late_limit: Number(data?.default_late_limit || 3),
     absent_limit: Number(data?.default_absent_limit || 2),
     late_template: defaultLateTemplate,
-    absent_template: defaultAbsentTemplate
+    absent_template: defaultAbsentTemplate,
+    late_milestones: defaultLateMilestones,
+    absent_milestones: defaultAbsentMilestones
   };
 }
 
@@ -56,7 +60,9 @@ export async function GET(request: Request, context: Context) {
         ? {
             ...data,
             late_template: data.late_template || base.late_template,
-            absent_template: data.absent_template || base.absent_template
+            absent_template: data.absent_template || base.absent_template,
+            late_milestones: normalizeMilestones(data.late_milestones, base.late_milestones),
+            absent_milestones: normalizeMilestones(data.absent_milestones, base.absent_milestones)
           }
         : {
             subject_id: id,
@@ -87,14 +93,16 @@ export async function PATCH(request: Request, context: Context) {
     absent_limit: Number(body.absent_limit || existing?.absent_limit || base.absent_limit),
     late_template: body.late_template ?? existing?.late_template ?? base.late_template,
     absent_template: body.absent_template ?? existing?.absent_template ?? base.absent_template,
+    late_milestones: normalizeMilestones(body.late_milestones ?? existing?.late_milestones, base.late_milestones),
+    absent_milestones: normalizeMilestones(body.absent_milestones ?? existing?.absent_milestones, base.absent_milestones),
     alert_period_start: body.reset_period ? new Date().toISOString() : existing?.alert_period_start || new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
 
   const { data, error } = await supabase.from("subject_alert_settings").upsert(row, { onConflict: "subject_id" }).select("*").single();
   if (error) {
-    if (error.message.includes("late_template") || error.message.includes("absent_template") || error.message.includes("schema cache")) {
-      return jsonError("Run the updated supabase/schema.sql before saving SMS templates.", 500);
+    if (error.message.includes("late_template") || error.message.includes("absent_template") || error.message.includes("milestones") || error.message.includes("schema cache")) {
+      return jsonError("Run the updated supabase/schema.sql before saving SMS alert settings.", 500);
     }
     return jsonError(error.message, 500);
   }

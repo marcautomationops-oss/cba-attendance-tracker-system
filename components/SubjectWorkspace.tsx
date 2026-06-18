@@ -144,6 +144,8 @@ type AlertSettings = {
   absent_limit: number;
   late_template: string;
   absent_template: string;
+  late_milestones: number[];
+  absent_milestones: number[];
   alert_period_start: string;
   schema_missing?: boolean;
 };
@@ -1804,11 +1806,27 @@ function AnalyticsPanel({ analytics }: { analytics: AnalyticsPayload | null; cha
 }
 
 function triggerForStudent(student: IndividualAnalytics, alertSettings: AlertSettings | null): AlertTrigger | null {
-  const lateLimit = alertSettings?.late_limit || 3;
-  const absentLimit = alertSettings?.absent_limit || 2;
-  if (student.absent_count >= absentLimit) return "absent";
-  if (student.late_count >= lateLimit) return "late";
+  const lateMilestones = alertSettings?.late_milestones?.length ? alertSettings.late_milestones : [3, 5, 7];
+  const absentMilestones = alertSettings?.absent_milestones?.length ? alertSettings.absent_milestones : [2, 4, 6];
+  if (student.absent_count >= Math.min(...absentMilestones)) return "absent";
+  if (student.late_count >= Math.min(...lateMilestones)) return "late";
   return null;
+}
+
+function formatMilestones(value: number[]) {
+  return value.join(", ");
+}
+
+function parseMilestones(value: string) {
+  const numbers = value
+    .split(",")
+    .map((part) => Number(part.trim()))
+    .filter((item) => Number.isInteger(item) && item > 0);
+  return Array.from(new Set(numbers)).sort((a, b) => a - b);
+}
+
+function nextMilestone(count: number, milestones: number[]) {
+  return milestones.find((milestone) => milestone >= count) || null;
 }
 
 function renderSmsTemplate(template: string, student: IndividualAnalytics, triggerType: AlertTrigger, subjectName = "this subject") {
@@ -1870,26 +1888,27 @@ function AlertsPanel({
               </label>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                 <label className="grid gap-2 text-sm font-bold text-graphite">
-                  Late limit
+                  Late SMS at
                   <input
-                    type="number"
-                    min={1}
-                    value={alertSettings.late_limit}
-                    onChange={(event) => setAlertSettings({ ...alertSettings, late_limit: Number(event.target.value) })}
+                    value={formatMilestones(alertSettings.late_milestones)}
+                    onChange={(event) => setAlertSettings({ ...alertSettings, late_milestones: parseMilestones(event.target.value) })}
+                    placeholder="3, 5, 7"
                     className="focus-ring rounded border border-line bg-paper px-3 py-3 text-ink"
                   />
                 </label>
                 <label className="grid gap-2 text-sm font-bold text-graphite">
-                  Absent limit
+                  Absent SMS at
                   <input
-                    type="number"
-                    min={1}
-                    value={alertSettings.absent_limit}
-                    onChange={(event) => setAlertSettings({ ...alertSettings, absent_limit: Number(event.target.value) })}
+                    value={formatMilestones(alertSettings.absent_milestones)}
+                    onChange={(event) => setAlertSettings({ ...alertSettings, absent_milestones: parseMilestones(event.target.value) })}
+                    placeholder="2, 4, 6"
                     className="focus-ring rounded border border-line bg-paper px-3 py-3 text-ink"
                   />
                 </label>
               </div>
+              <p className="rounded border border-line bg-paper px-3 py-3 text-sm leading-6 text-graphite">
+                Automatic SMS sends only when a student lands exactly on one of these counts.
+              </p>
               <label className="grid gap-2 text-sm font-bold text-graphite">
                 Late template
                 <textarea
@@ -1939,6 +1958,10 @@ function AlertsPanel({
               const triggerType = triggerForStudent(student, alertSettings);
               const status = triggerType ? student.sms_alerts?.[triggerType] || "Not sent" : "No threshold";
               const canSend = Boolean(triggerType && student.contact_number);
+              const milestones = triggerType === "late" ? alertSettings?.late_milestones || [3, 5, 7] : alertSettings?.absent_milestones || [2, 4, 6];
+              const count = triggerType === "late" ? student.late_count : student.absent_count;
+              const automaticNow = triggerType ? milestones.includes(count) : false;
+              const nextAuto = triggerType ? nextMilestone(count + 1, milestones) : null;
               return (
                 <div key={student.student_id} className="grid gap-3 rounded border border-line bg-paper p-3 lg:grid-cols-[1fr_120px_120px_120px] lg:items-center">
                   <div>
@@ -1946,6 +1969,11 @@ function AlertsPanel({
                     <p className="font-mono text-xs text-graphite">
                       {student.student_number} / Late {student.late_count} / Absent {student.absent_count}
                     </p>
+                    {triggerType ? (
+                      <p className="mt-1 text-xs font-bold text-graphite">
+                        {automaticNow ? "Automatic SMS milestone now" : nextAuto ? `Next automatic SMS at ${triggerType} ${nextAuto}` : "No next automatic SMS set"}
+                      </p>
+                    ) : null}
                   </div>
                   <span className={`rounded border px-2.5 py-1 text-center text-xs font-bold ${triggerType === "absent" ? "border-red-200 bg-red-50 text-red-700" : triggerType === "late" ? "border-orange-200 bg-orange-50 text-orange-700" : "border-line bg-white text-graphite"}`}>
                     {triggerType === "absent" ? "Absent alert" : triggerType === "late" ? "Late alert" : "No threshold"}

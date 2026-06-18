@@ -107,6 +107,8 @@ export type SubjectAlertSettings = {
   absent_limit: number;
   late_template: string | null;
   absent_template: string | null;
+  late_milestones: number[] | null;
+  absent_milestones: number[] | null;
   alert_period_start: string;
   created_at: string;
   updated_at: string;
