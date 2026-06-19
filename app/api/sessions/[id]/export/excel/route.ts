@@ -21,11 +21,17 @@ export async function GET(request: Request, context: Context) {
       "Time submitted": record.submitted_at ? displayDateTime(record.submitted_at) : "",
       Status: statusLabel(record.status),
       Remarks: record.notes || "",
-      "Attendance proof photo link": record.photo_url || ""
+      Proof: record.photo_deleted_at || record.notes?.toLowerCase().includes("proof photo deleted") ? "Proof deleted" : record.photo_url ? "View proof" : "No proof"
     }));
 
     const workbook = XLSX.utils.book_new();
     const sheet = XLSX.utils.json_to_sheet(rows);
+    payload.records.forEach((record, index) => {
+      if (!record.photo_url || record.photo_deleted_at || record.notes?.toLowerCase().includes("proof photo deleted")) return;
+      const proofCell = sheet[`G${index + 2}`];
+      if (proofCell) proofCell.l = { Target: record.photo_url, Tooltip: `View proof for ${record.full_name}` };
+    });
+    sheet["!cols"] = [{ wch: 18 }, { wch: 32 }, { wch: 12 }, { wch: 24 }, { wch: 12 }, { wch: 36 }, { wch: 14 }];
     XLSX.utils.book_append_sheet(workbook, sheet, "Attendance");
     const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }) as Buffer;
 
