@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { AddItemForm, AddItemSheet, PrimaryButton, SelectionCard } from "@/components/AdaptiveSelection";
 import { DeleteControlModal } from "@/components/DeleteControlModal";
 
@@ -10,44 +10,19 @@ type SectionRow = {
   name: string;
 };
 
-export function SectionsDashboard() {
-  const [sections, setSections] = useState<SectionRow[]>([]);
+type SectionsDashboardProps = {
+  initialSections: SectionRow[];
+  initialError?: string;
+};
+
+export function SectionsDashboard({ initialSections, initialError = "" }: SectionsDashboardProps) {
+  const [sections, setSections] = useState<SectionRow[]>(initialSections);
   const [name, setName] = useState("");
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [selectedSection, setSelectedSection] = useState<SectionRow | null>(null);
   const [mobileAddOpen, setMobileAddOpen] = useState(false);
-  const [error, setError] = useState("");
-
-  async function loadSections() {
-    setLoading(true);
-    setError("");
-
-    let response: Response;
-    let payload: { error?: string; sections?: SectionRow[] };
-    try {
-      response = await fetch("/api/sections", { cache: "no-store" });
-      payload = await response.json();
-    } catch {
-      setLoading(false);
-      setError("Sections could not load. Check the local server and Supabase connection.");
-      return;
-    }
-
-    if (!response.ok) {
-      setLoading(false);
-      setError(payload.error || "Sections could not load.");
-      return;
-    }
-
-    setLoading(false);
-    setSections(payload.sections || []);
-  }
-
-  useEffect(() => {
-    loadSections();
-  }, []);
+  const [error, setError] = useState(initialError);
 
   async function addSection(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -55,7 +30,7 @@ export function SectionsDashboard() {
     setError("");
 
     let response: Response;
-    let payload: { error?: string };
+    let payload: { error?: string; section?: SectionRow };
     try {
       response = await fetch("/api/sections", {
         method: "POST",
@@ -78,7 +53,10 @@ export function SectionsDashboard() {
     setSaving(false);
     setName("");
     setMobileAddOpen(false);
-    await loadSections();
+    const addedSection = payload.section;
+    if (addedSection) {
+      setSections((current) => [...current, addedSection].sort((left, right) => left.name.localeCompare(right.name)));
+    }
   }
 
   async function deleteSection() {
@@ -104,8 +82,8 @@ export function SectionsDashboard() {
     }
 
     setDeleting(false);
+    setSections((current) => current.filter((section) => section.id !== selectedSection.id));
     setSelectedSection(null);
-    await loadSections();
   }
 
   return (
@@ -140,9 +118,7 @@ export function SectionsDashboard() {
           onSubmit={addSection}
           className="hidden md:flex md:col-span-2 lg:col-span-1"
         />
-        {!sections.length ? (
-          <p className="col-span-full text-center text-sm text-graphite">{loading ? "Loading sections" : "Add a section to begin."}</p>
-        ) : null}
+        {!sections.length ? <p className="col-span-full text-center text-sm text-graphite">Add a section to begin.</p> : null}
       </section>
       <div className="mt-6 grid gap-4 md:hidden">
         <PrimaryButton type="button" onClick={() => setMobileAddOpen(true)}>

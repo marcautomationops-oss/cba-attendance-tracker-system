@@ -1,12 +1,14 @@
 import { SectionsDashboard } from "@/components/SectionsDashboard";
-import { TeacherShell } from "@/components/TeacherShell";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
-export default function DashboardPage() {
-  return (
-    <TeacherShell>
-      <SectionsDashboard />
-    </TeacherShell>
-  );
+export default async function DashboardPage() {
+  const { data, error } = await getSupabaseAdmin()
+    .from("sections")
+    .select("id, name")
+    .eq("is_active", true)
+    .order("name");
+
+  return <SectionsDashboard initialSections={data || []} initialError={error?.message || ""} />;
 }
