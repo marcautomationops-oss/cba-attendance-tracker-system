@@ -36,13 +36,18 @@ type AddItemSheetProps = {
 
 export function SelectionCard({ label, name, href, actionLabel, onControl }: SelectionCardProps) {
   return (
-    <article className="cockpit-card focus-within:border-[#2f6fea] group flex min-h-[260px] flex-col overflow-hidden text-left transition hover:-translate-y-1 hover:border-[#2f6fea] hover:shadow-soft md:min-h-[330px] lg:min-h-[360px]">
-      <div className="flex flex-1 flex-col justify-between gap-9 p-6 md:p-7">
+    <article className="cockpit-card focus-within:border-[#2f6fea] group relative flex min-h-[260px] flex-col overflow-hidden text-left transition hover:-translate-y-1 hover:border-[#2f6fea] hover:shadow-soft md:min-h-[330px] lg:min-h-[360px]">
+      <Link
+        href={href}
+        aria-label={`${actionLabel}: ${name}`}
+        className="focus-ring absolute inset-0 z-10"
+      />
+      <div className="pointer-events-none relative z-20 flex flex-1 flex-col justify-between gap-9 p-6 md:p-7">
         <div className="flex items-center justify-between gap-4">
           <button
             type="button"
             onClick={onControl}
-            className="focus-ring inline-flex min-h-11 items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-[#335f97] hover:text-[#061426]"
+            className="focus-ring pointer-events-auto inline-flex min-h-11 items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-[#335f97] hover:text-[#061426]"
           >
             <SlidersHorizontal size={17} />
             {label}
@@ -53,18 +58,18 @@ export function SelectionCard({ label, name, href, actionLabel, onControl }: Sel
           </span>
         </div>
 
-        <Link href={href} className="focus-ring block px-1">
+        <div className="block px-1">
           <h2 className="selection-card-title font-display text-center text-[clamp(2rem,10vw,3rem)] font-extrabold leading-[0.98] tracking-[-0.035em] text-[#071529] md:text-[42px]">
             {name}
           </h2>
-        </Link>
+        </div>
 
         <div className="cockpit-rule" />
       </div>
-      <Link href={href} className="focus-ring flex min-h-16 items-center justify-between border-t border-[#9fb9d6]/38 bg-[#eaf4ff]/70 px-6 py-4 text-sm font-bold uppercase tracking-[0.06em] text-[#061426] md:px-7 md:py-5">
+      <div className="pointer-events-none relative z-20 flex min-h-16 items-center justify-between border-t border-[#9fb9d6]/38 bg-[#eaf4ff]/70 px-6 py-4 text-sm font-bold uppercase tracking-[0.06em] text-[#061426] md:px-7 md:py-5">
         <span className="min-w-0 break-words">{actionLabel}</span>
         <ArrowRight className="shrink-0 transition group-hover:translate-x-1" size={22} />
-      </Link>
+      </div>
     </article>
   );
 }
