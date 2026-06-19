@@ -101,7 +101,7 @@ function StatusMenu({
               key={status}
               type="button"
               onClick={() => save(status)}
-              className="focus-ring flex w-full items-center justify-between rounded px-3 py-2 text-left text-sm font-bold text-ink hover:bg-paper"
+              className="focus-ring flex min-h-11 w-full items-center justify-between rounded px-3 py-2 text-left text-sm font-bold text-ink hover:bg-paper"
             >
               {statusLabel(status)}
               {status === record.status ? <Check size={15} className="text-pool" /> : null}
@@ -137,7 +137,7 @@ export function AttendanceRecordRows({
           >
             <StudentPhoto record={record} />
             <div className="min-w-0">
-              <p className="truncate font-bold text-ink">{record.full_name}</p>
+              <p className="break-words font-bold text-ink">{record.full_name}</p>
               <p className="font-mono text-xs text-graphite">{record.student_number}</p>
             </div>
             <span className="font-mono text-sm font-bold text-ink">{exactTime(record.submitted_at)}</span>
@@ -146,7 +146,7 @@ export function AttendanceRecordRows({
               <button
                 type="button"
                 onClick={() => setProof(record)}
-                className="focus-ring inline-flex items-center justify-center gap-2 rounded border border-line bg-white px-3 py-2 text-xs font-bold text-ink hover:border-pool"
+                className="focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded border border-line bg-white px-3 py-2 text-xs font-bold text-ink hover:border-pool"
               >
                 <Camera size={14} />
                 View proof
@@ -162,14 +162,14 @@ export function AttendanceRecordRows({
       </div>
 
       {proof ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/35 px-4 py-8">
-          <section className="w-full max-w-xl rounded border border-line bg-white p-5 shadow-soft">
+        <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/35 px-3 py-4 sm:px-4 sm:py-8">
+          <section className="max-h-[calc(100vh-2rem)] w-full max-w-xl overflow-y-auto rounded border border-line bg-white p-4 shadow-soft sm:p-5">
             <div className="mb-4 flex items-center justify-between gap-4">
               <div>
                 <h3 className="text-xl font-bold text-ink">{proof.full_name}</h3>
                 <p className="font-mono text-xs text-graphite">{exactTime(proof.submitted_at)}</p>
               </div>
-              <button type="button" onClick={() => setProof(null)} className="focus-ring rounded border border-line px-3 py-2 text-sm font-bold text-graphite">
+              <button type="button" onClick={() => setProof(null)} className="focus-ring min-h-11 rounded border border-line px-3 py-2 text-sm font-bold text-graphite">
                 <X size={16} />
               </button>
             </div>

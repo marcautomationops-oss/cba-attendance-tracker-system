@@ -1,32 +1,82 @@
+"use client";
+
 import Link from "next/link";
-import { LogOut, SlidersHorizontal } from "lucide-react";
+import { LogOut, MoreVertical, SlidersHorizontal } from "lucide-react";
+import { useState } from "react";
 import { LiveClock } from "@/components/LiveClock";
 
 export function TeacherShell({ children }: { children: React.ReactNode }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <div className="cockpit-shell">
       <header className="relative z-20 border-b border-white/10 bg-[linear-gradient(180deg,#071b33,#061426)] text-white shadow-[0_16px_34px_rgba(6,20,38,0.16)]">
-        <div className="grid gap-4 px-5 py-5 lg:grid-cols-[minmax(320px,1fr)_auto_minmax(260px,1fr)] lg:items-center lg:px-8">
-          <Link href="/dashboard" className="focus-ring inline-flex w-fit items-center rounded px-1 py-1">
-            <span className="font-[family:var(--font-brand)] text-[22px] font-normal uppercase leading-none tracking-[0.075em] text-white sm:text-[26px] xl:text-[28px]">
+        <div className="flex items-start justify-between gap-3 px-4 py-5 md:hidden">
+          <Link href="/dashboard" className="focus-ring inline-flex min-w-0 items-center rounded px-1 py-1">
+            <span className="min-w-0 break-words font-[family:var(--font-brand)] text-[clamp(1.35rem,6vw,2.15rem)] font-normal leading-[1.05] tracking-normal text-white">
               CBA <span className="text-[#67c7ff]">Attendance Log</span>
             </span>
           </Link>
 
-          <div className="flex flex-wrap items-center gap-5 text-[13px] font-medium uppercase tracking-[0.1em] text-[#b8cbe2]/72 lg:justify-center">
+          <div className="relative flex shrink-0 items-center gap-2">
+            <Link href="/settings" className="focus-ring grid h-11 w-11 place-items-center rounded border border-transparent text-[#f7fbff] transition hover:border-[#9fb9d6]/28 hover:bg-white/[0.04]" aria-label="Settings">
+              <SlidersHorizontal size={24} />
+            </Link>
+            <button
+              type="button"
+              onClick={() => setMenuOpen((open) => !open)}
+              className="focus-ring grid h-11 w-11 place-items-center rounded border border-transparent text-[#f7fbff] transition hover:border-[#9fb9d6]/28 hover:bg-white/[0.04]"
+              aria-label="Open menu"
+              aria-expanded={menuOpen}
+            >
+              <MoreVertical size={25} />
+            </button>
+            {menuOpen ? (
+              <div className="absolute right-0 top-12 z-30 w-44 border border-[#9fb9d6]/28 bg-[#071b33] p-2 shadow-[0_20px_46px_rgba(0,0,0,0.28)]">
+                <form action="/api/logout" method="post">
+                  <button
+                    suppressHydrationWarning
+                    className="focus-ring flex min-h-11 w-full items-center gap-2 rounded px-3 text-left text-sm font-bold text-[#d8e7f7] transition hover:bg-white/[0.06] hover:text-white"
+                  >
+                    <LogOut size={17} />
+                    Logout
+                  </button>
+                </form>
+              </div>
+            ) : null}
+          </div>
+        </div>
+        <div className="px-5 pb-5 md:hidden">
+          <div className="inline-flex items-center gap-3 text-lg font-medium tracking-[0.02em] text-[#f7fbff]">
+            <span className="tabular-nums">
+              <LiveClock />
+            </span>
+            <span className="h-3 w-3 rounded-full bg-[#17b26a]" />
+            <span className="text-[#37d978]">Online</span>
+          </div>
+        </div>
+
+        <div className="hidden gap-3 px-5 py-4 md:grid md:grid-cols-[minmax(220px,1fr)_auto_auto] md:items-center lg:grid-cols-[minmax(320px,1fr)_auto_minmax(260px,1fr)] lg:gap-4 lg:px-8 lg:py-5">
+          <Link href="/dashboard" className="focus-ring inline-flex w-fit items-center rounded px-1 py-1">
+            <span className="font-[family:var(--font-brand)] text-[20px] font-normal uppercase leading-none tracking-[0.075em] text-white lg:text-[22px] xl:text-[28px]">
+              CBA <span className="text-[#67c7ff]">Attendance Log</span>
+            </span>
+          </Link>
+
+          <div className="flex items-center gap-3 text-[12px] font-medium uppercase tracking-[0.1em] text-[#b8cbe2]/72 lg:justify-center lg:gap-5 lg:text-[13px]">
             <span className="inline-flex items-center tabular-nums text-[#b8cbe2]/72">
               <LiveClock />
             </span>
-            <span className="hidden h-8 w-px bg-[#9fb9d6]/45 sm:block" />
+            <span className="h-8 w-px bg-[#9fb9d6]/45" />
             <span className="inline-flex items-center gap-2 text-[#b8cbe2]/72">
-              System Status
+              <span className="hidden xl:inline">System Status</span>
               <span className="h-2 w-2 rounded-full bg-[#17b26a]" />
               <span className="font-normal text-[#37d978]">Online</span>
             </span>
           </div>
 
-          <div className="flex items-center gap-3 lg:justify-end">
-            <Link href="/settings" className="focus-ring inline-flex items-center gap-2 border border-[#9fb9d6]/24 bg-white/[0.025] px-4 py-3 text-sm font-medium text-[#b8cbe2]/76 transition hover:border-[#9fb9d6]/42 hover:bg-white/[0.055] hover:text-[#b8cbe2]/88">
+          <div className="flex items-center gap-2 justify-self-end lg:gap-3">
+            <Link href="/settings" className="focus-ring inline-flex min-h-11 items-center gap-2 border border-[#9fb9d6]/24 bg-white/[0.025] px-3 py-2 text-sm font-medium text-[#b8cbe2]/76 transition hover:border-[#9fb9d6]/42 hover:bg-white/[0.055] hover:text-[#b8cbe2]/88 lg:px-4 lg:py-3">
               <SlidersHorizontal size={16} />
               Settings
             </Link>
@@ -34,7 +84,7 @@ export function TeacherShell({ children }: { children: React.ReactNode }) {
             <form action="/api/logout" method="post">
               <button
                 suppressHydrationWarning
-                className="focus-ring inline-flex items-center gap-2 border border-transparent px-3 py-3 text-sm font-medium text-[#b8cbe2]/76 transition hover:border-[#9fb9d6]/28 hover:bg-white/[0.035] hover:text-[#b8cbe2]/88"
+                className="focus-ring inline-flex min-h-11 items-center gap-2 border border-transparent px-3 py-2 text-sm font-medium text-[#b8cbe2]/76 transition hover:border-[#9fb9d6]/28 hover:bg-white/[0.035] hover:text-[#b8cbe2]/88 lg:py-3"
               >
                 <LogOut size={16} />
                 Logout
@@ -44,7 +94,7 @@ export function TeacherShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="relative mx-auto max-w-7xl px-5 py-12 sm:px-8">{children}</main>
+      <main className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 md:px-8 md:py-10 lg:py-12">{children}</main>
     </div>
   );
 }

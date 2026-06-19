@@ -50,7 +50,7 @@ export function LiveAttendancePanel({ sessionId }: { sessionId: string }) {
   }
 
   return (
-    <section className="min-h-[480px] rounded border border-line bg-white p-5 shadow-soft 2xl:p-7">
+    <section className="min-h-[360px] rounded border border-line bg-white p-4 shadow-soft sm:p-5 md:min-h-[480px] 2xl:p-7">
       <h2 className="mb-4 text-2xl font-bold tracking-tight text-ink">Students</h2>
       {error ? <p className="mb-3 rounded border border-signal bg-red-50 p-3 text-sm font-semibold text-signal">{error}</p> : null}
       <AttendanceRecordRows sessionId={sessionId} records={records} onChanged={load} />

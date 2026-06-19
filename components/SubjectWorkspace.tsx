@@ -202,7 +202,7 @@ function ControlButton({ children, className = "", ...props }: ButtonHTMLAttribu
   return (
     <button
       {...props}
-      className={`focus-ring inline-flex items-center justify-center gap-2 rounded bg-ledger px-4 py-3 text-sm font-bold text-white transition hover:bg-ink disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
+      className={`focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded bg-ledger px-4 py-3 text-sm font-bold text-white transition hover:bg-ink disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
     >
       {children}
     </button>
@@ -686,13 +686,13 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
 
   return (
     <div className="grid min-w-0 gap-6">
-      <section className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <Link href={`/sections/${section.id}`} className="focus-ring inline-flex items-center gap-2 rounded px-1 py-1 text-sm font-bold uppercase text-graphite hover:text-pool">
+      <section className="flex min-w-0 flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="min-w-0">
+          <Link href={`/sections/${section.id}`} className="focus-ring inline-flex min-h-11 max-w-full items-center gap-2 rounded px-1 py-1 text-sm font-bold uppercase text-graphite hover:text-pool">
             <ChevronLeft size={16} />
-            {section.name}
+            <span className="min-w-0 break-words">{section.name}</span>
           </Link>
-          <h1 className="mt-2 text-4xl font-bold tracking-tight text-ink md:text-6xl 2xl:text-7xl">{subject.name}</h1>
+          <h1 className="selection-card-title mt-2 text-[clamp(2.25rem,11vw,3.75rem)] font-bold leading-[1.02] tracking-tight text-ink md:text-6xl 2xl:text-7xl">{subject.name}</h1>
         </div>
         <div className="grid gap-2 md:min-w-80">
           {notice ? <p className="rounded border border-green-700 bg-green-50 px-3 py-2 text-sm font-bold text-green-800">{notice}</p> : null}
@@ -705,7 +705,7 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
           type="button"
           aria-label="Open workspace menu"
           onClick={() => setSidebarOpen(true)}
-          className="focus-ring fixed left-0 top-1/2 z-40 flex h-16 w-9 -translate-y-1/2 items-center justify-center rounded-r bg-ledger text-white shadow-soft transition hover:bg-ink"
+          className="focus-ring fixed left-0 top-1/2 z-40 flex h-16 w-11 -translate-y-1/2 items-center justify-center rounded-r bg-ledger text-white shadow-soft transition hover:bg-ink"
         >
           <ChevronRight size={22} />
         </button>
@@ -714,10 +714,10 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
       {sidebarOpen ? (
         <div className="fixed inset-0 z-50">
           <button type="button" aria-label="Close menu" onClick={() => setSidebarOpen(false)} className="absolute inset-0 bg-ink/30" />
-          <aside className="relative flex h-full w-[300px] flex-col bg-ledger p-5 text-white shadow-soft">
+          <aside className="relative flex h-full w-full max-w-[300px] flex-col bg-ledger p-5 text-white shadow-soft">
             <div className="mb-7 flex items-center justify-between">
               <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-white/60">Workspace</p>
-              <button type="button" onClick={() => setSidebarOpen(false)} className="focus-ring rounded p-2 text-white/80 hover:bg-white/10 hover:text-white">
+              <button type="button" onClick={() => setSidebarOpen(false)} className="focus-ring grid h-11 w-11 place-items-center rounded text-white/80 hover:bg-white/10 hover:text-white">
                 <X size={20} />
               </button>
             </div>
@@ -926,13 +926,13 @@ function CurrentTab({
           </div>
         </QRCodeDisplay>
       ) : (
-        <section className="min-w-0 rounded border border-line bg-white p-5 shadow-sm 2xl:p-7">
-          <div className="grid min-h-[420px] content-center gap-6 text-center">
+        <section className="min-w-0 rounded border border-line bg-white p-4 shadow-sm sm:p-5 2xl:p-7">
+          <div className="grid min-h-[320px] content-center gap-6 text-center md:min-h-[420px]">
             <div>
               <UtilityLabel>Attendance control</UtilityLabel>
               <h2 className="mt-3 text-3xl font-bold tracking-tight text-ink md:text-4xl">Start today&apos;s session</h2>
             </div>
-            <label className="focus-within:ring-2 focus-within:ring-pool mx-auto grid w-full max-w-xs grid-cols-[minmax(0,1fr)_7rem] items-center rounded border border-line bg-paper px-4 py-3 text-left text-sm shadow-sm">
+            <label className="focus-within:ring-2 focus-within:ring-pool mx-auto grid min-h-12 w-full max-w-xs grid-cols-[minmax(0,1fr)_7rem] items-center rounded border border-line bg-paper px-4 py-3 text-left text-sm shadow-sm">
               <span className="font-bold text-graphite">Late after</span>
               <span className="relative flex w-28 items-center">
                 <select
@@ -948,7 +948,7 @@ function CurrentTab({
                 <ChevronRight className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 rotate-90 text-graphite" size={16} />
               </span>
             </label>
-            <label className="focus-within:ring-2 focus-within:ring-pool mx-auto grid w-full max-w-xs grid-cols-[minmax(0,1fr)_7rem] items-center rounded border border-line bg-paper px-4 py-3 text-left text-sm shadow-sm">
+            <label className="focus-within:ring-2 focus-within:ring-pool mx-auto grid min-h-12 w-full max-w-xs grid-cols-[minmax(0,1fr)_7rem] items-center rounded border border-line bg-paper px-4 py-3 text-left text-sm shadow-sm">
               <span className="font-bold text-graphite">Attendance closes</span>
               <span className="relative flex w-28 items-center">
                 <select
@@ -976,7 +976,7 @@ function CurrentTab({
       {activeSession ? (
         <LiveAttendancePanel sessionId={activeSession.id} />
       ) : (
-        <section className="min-w-0 overflow-hidden rounded border border-line bg-white p-5 shadow-sm 2xl:p-7">
+        <section className="min-w-0 overflow-hidden rounded border border-line bg-white p-4 shadow-sm sm:p-5 2xl:p-7">
           <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <h2 className="text-2xl font-bold tracking-tight text-ink">Students</h2>
             <div className="flex flex-wrap gap-2">
@@ -986,7 +986,7 @@ function CurrentTab({
                   setStudentMode("manual");
                   setStudentPanelOpen(true);
                 }}
-                className="focus-ring inline-flex items-center gap-2 rounded border border-line bg-paper px-3 py-2 text-sm font-bold text-ink hover:border-pool"
+                className="focus-ring inline-flex min-h-11 items-center gap-2 rounded border border-line bg-paper px-3 py-2 text-sm font-bold text-ink hover:border-pool"
               >
                 <Plus size={16} />
                 Add student
@@ -1003,14 +1003,14 @@ function CurrentTab({
           />
 
           {studentPanelOpen ? (
-            <div className="fixed inset-0 z-50 grid place-items-center bg-ink/35 px-4 py-8">
-              <section className="w-full max-w-3xl rounded border border-line bg-white p-5 shadow-soft">
+            <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/35 px-3 py-4 sm:px-4 sm:py-8">
+              <section className="max-h-[calc(100vh-2rem)] w-full max-w-3xl overflow-y-auto rounded border border-line bg-white p-4 shadow-soft sm:p-5">
                 <div className="mb-5 flex items-center justify-between gap-4">
                   <div>
                     <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-pool">Student intake</p>
                     <h3 className="mt-2 text-2xl font-bold text-ink">Add student</h3>
                   </div>
-                  <button type="button" onClick={() => setStudentPanelOpen(false)} className="focus-ring rounded border border-line px-3 py-2 text-sm font-bold text-graphite">
+                  <button type="button" onClick={() => setStudentPanelOpen(false)} className="focus-ring min-h-11 rounded border border-line px-3 py-2 text-sm font-bold text-graphite">
                     Close
                   </button>
                 </div>
@@ -1028,7 +1028,7 @@ function CurrentTab({
                         key={mode.id}
                         type="button"
                         onClick={() => setStudentMode(mode.id)}
-                        className={`focus-ring inline-flex items-center justify-center gap-2 rounded border px-3 py-3 text-sm font-bold ${
+                        className={`focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded border px-3 py-3 text-sm font-bold ${
                           active ? "border-pool bg-blue-50 text-pool" : "border-line bg-paper text-ink hover:border-pool"
                         }`}
                       >
@@ -1040,7 +1040,7 @@ function CurrentTab({
                 </div>
 
                 {studentMode === "manual" ? (
-                  <form onSubmit={saveManualStudent} className="grid min-w-0 gap-4 rounded border border-line bg-paper p-4 lg:grid-cols-[160px_1fr]">
+                  <form onSubmit={saveManualStudent} className="grid min-w-0 gap-4 rounded border border-line bg-paper p-3 sm:p-4 lg:grid-cols-[160px_1fr]">
                     <div className="grid gap-3">
                       <div className="grid aspect-square place-items-center overflow-hidden rounded border border-line bg-white">
                         {studentForm.profile_photo_data_url ? (
@@ -1050,7 +1050,7 @@ function CurrentTab({
                           <UserPlus className="text-graphite" size={42} />
                         )}
                       </div>
-                      <label className="focus-ring inline-flex cursor-pointer items-center justify-center gap-2 rounded border border-line bg-white px-3 py-3 text-sm font-bold text-ink hover:border-pool">
+                      <label className="focus-ring inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded border border-line bg-white px-3 py-3 text-sm font-bold text-ink hover:border-pool">
                         <Upload size={16} />
                         Photo
                         <input
@@ -1069,21 +1069,21 @@ function CurrentTab({
                         value={studentForm.student_number}
                         onChange={(event) => setStudentForm({ ...studentForm, student_number: event.target.value })}
                         placeholder="Student ID"
-                        className="focus-ring min-w-0 rounded border border-line bg-white px-3 py-3 text-sm font-bold placeholder:text-graphite/55"
+                        className="focus-ring min-h-11 min-w-0 rounded border border-line bg-white px-3 py-3 text-sm font-bold placeholder:text-graphite/55"
                         required
                       />
                       <input
                         value={studentForm.full_name}
                         onChange={(event) => setStudentForm({ ...studentForm, full_name: event.target.value })}
                         placeholder="Full name"
-                        className="focus-ring min-w-0 rounded border border-line bg-white px-3 py-3 text-sm font-bold placeholder:text-graphite/55"
+                        className="focus-ring min-h-11 min-w-0 rounded border border-line bg-white px-3 py-3 text-sm font-bold placeholder:text-graphite/55"
                         required
                       />
                       <input
                         value={studentForm.contact_number}
                         onChange={(event) => setStudentForm({ ...studentForm, contact_number: event.target.value })}
                         placeholder="Contact number"
-                        className="focus-ring min-w-0 rounded border border-line bg-white px-3 py-3 text-sm font-bold placeholder:text-graphite/55 sm:col-span-2"
+                        className="focus-ring min-h-11 min-w-0 rounded border border-line bg-white px-3 py-3 text-sm font-bold placeholder:text-graphite/55 sm:col-span-2"
                       />
                       <ControlButton disabled={savingStudent} className="sm:col-span-2">
                         {savingStudent ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}
@@ -1098,7 +1098,7 @@ function CurrentTab({
                     <p className="mb-4 text-sm font-semibold leading-6 text-graphite">
                       Upload an Excel file to review rows first. Saving the reviewed rows will create or update students and populate the Students panel.
                     </p>
-                    <label className={`focus-ring inline-flex cursor-pointer items-center gap-2 rounded bg-ledger px-4 py-3 text-sm font-bold text-white hover:bg-ink ${importing ? "opacity-60" : ""}`}>
+                    <label className={`focus-ring inline-flex min-h-11 cursor-pointer items-center gap-2 rounded bg-ledger px-4 py-3 text-sm font-bold text-white hover:bg-ink ${importing ? "opacity-60" : ""}`}>
                       {importing ? <Loader2 className="animate-spin" size={16} /> : <FileSpreadsheet size={16} />}
                       Choose Excel file
                       <input type="file" accept=".xlsx" className="sr-only" onChange={(event) => importExcel(event.target.files?.[0] || null)} />
@@ -1111,7 +1111,7 @@ function CurrentTab({
                     <p className="mb-4 text-sm font-semibold leading-6 text-graphite">
                       Upload student photos after students exist. File names should match student IDs; matched photos will fill the image column in the Students panel after review.
                     </p>
-                    <label className={`focus-ring inline-flex cursor-pointer items-center gap-2 rounded bg-ledger px-4 py-3 text-sm font-bold text-white hover:bg-ink ${reviewingPhotos ? "opacity-60" : ""}`}>
+                    <label className={`focus-ring inline-flex min-h-11 cursor-pointer items-center gap-2 rounded bg-ledger px-4 py-3 text-sm font-bold text-white hover:bg-ink ${reviewingPhotos ? "opacity-60" : ""}`}>
                       {reviewingPhotos ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
                       Choose photos
                       <input type="file" accept="image/*" multiple className="sr-only" onChange={(event) => reviewPhotos(event.target.files)} />
@@ -1153,21 +1153,21 @@ function HistoryTab({
   if (selectedSessionId) {
     const counts = records?.counts;
     return (
-      <section className="min-w-0 rounded border border-line bg-white p-5 shadow-sm 2xl:p-7">
+      <section className="min-w-0 rounded border border-line bg-white p-4 shadow-sm sm:p-5 2xl:p-7">
         <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <button type="button" onClick={back} className="focus-ring mb-3 inline-flex items-center gap-2 rounded px-1 py-1 text-sm font-bold text-graphite hover:text-pool">
+            <button type="button" onClick={back} className="focus-ring mb-3 inline-flex min-h-11 items-center gap-2 rounded px-1 py-1 text-sm font-bold text-graphite hover:text-pool">
               <ChevronLeft size={16} />
               History
             </button>
-            <h2 className="text-3xl font-bold text-ink">{selectedSession ? displayDateTime(selectedSession.start_time) : "Session records"}</h2>
+            <h2 className="selection-card-title text-2xl font-bold text-ink sm:text-3xl">{selectedSession ? displayDateTime(selectedSession.start_time) : "Session records"}</h2>
           </div>
           <div className="flex flex-wrap gap-2">
-            <a href={`/api/sessions/${selectedSessionId}/export/excel`} className="focus-ring inline-flex items-center gap-2 rounded border border-line bg-paper px-3 py-2 text-sm font-bold text-ink hover:border-pool">
+            <a href={`/api/sessions/${selectedSessionId}/export/excel`} className="focus-ring inline-flex min-h-11 items-center gap-2 rounded border border-line bg-paper px-3 py-2 text-sm font-bold text-ink hover:border-pool">
               <Download size={16} />
               Excel
             </a>
-            <a href={`/api/sessions/${selectedSessionId}/export/pdf`} className="focus-ring inline-flex items-center gap-2 rounded border border-line bg-paper px-3 py-2 text-sm font-bold text-ink hover:border-pool">
+            <a href={`/api/sessions/${selectedSessionId}/export/pdf`} className="focus-ring inline-flex min-h-11 items-center gap-2 rounded border border-line bg-paper px-3 py-2 text-sm font-bold text-ink hover:border-pool">
               <FileText size={16} />
               PDF
             </a>
@@ -1175,7 +1175,7 @@ function HistoryTab({
               <button
                 type="button"
                 onClick={() => onDeleteSession(selectedSession)}
-                className="focus-ring inline-flex items-center gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-700 hover:border-red-700"
+                className="focus-ring inline-flex min-h-11 items-center gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-700 hover:border-red-700"
               >
                 <Trash2 size={16} />
                 Delete session
@@ -1202,7 +1202,7 @@ function HistoryTab({
   }
 
   return (
-    <section className="min-w-0 rounded border border-line bg-white p-5 shadow-sm 2xl:p-7">
+    <section className="min-w-0 rounded border border-line bg-white p-4 shadow-sm sm:p-5 2xl:p-7">
       <div className="mb-5 flex items-center gap-2">
         <CalendarDays className="text-pool" size={22} />
         <h2 className="text-2xl font-bold text-ink">Session history</h2>
@@ -1215,10 +1215,10 @@ function HistoryTab({
               key={session.id}
               type="button"
               onClick={() => openSession(session.id)}
-              className="focus-ring grid gap-3 rounded border border-line bg-paper p-4 text-left transition hover:border-pool hover:bg-white lg:grid-cols-[1fr_auto] lg:items-center"
+              className="focus-ring grid min-h-16 gap-3 rounded border border-line bg-paper p-4 text-left transition hover:border-pool hover:bg-white lg:grid-cols-[1fr_auto] lg:items-center"
             >
               <div>
-                <p className="font-bold text-ink">{displayDateTime(session.start_time)}</p>
+                <p className="break-words font-bold text-ink">{displayDateTime(session.start_time)}</p>
                 <p className="mt-1 font-mono text-xs font-bold uppercase tracking-[0.16em] text-graphite">Session record</p>
               </div>
               <div className="flex flex-wrap gap-2 text-xs font-bold text-graphite">
@@ -1260,16 +1260,16 @@ function StudentList({
             <div className="flex min-w-0 items-center gap-3">
               <StudentAvatar student={student} />
               <div className="min-w-0">
-                <p className="truncate font-bold text-ink">{student.full_name}</p>
+                <p className="break-words font-bold text-ink">{student.full_name}</p>
                 <p className="font-mono text-xs text-graphite">{student.student_number}</p>
               </div>
             </div>
-            <p className="min-w-0 truncate text-sm font-semibold text-graphite sm:text-right">{student.contact_number || "No contact number"}</p>
+            <p className="min-w-0 break-words text-sm font-semibold text-graphite sm:text-right">{student.contact_number || "No contact number"}</p>
             <div className="flex gap-2 sm:justify-end">
               <button
                 type="button"
                 onClick={() => setEditingStudent(student)}
-                className="focus-ring inline-flex h-10 w-10 items-center justify-center rounded border border-line bg-white text-ink hover:border-pool"
+                className="focus-ring inline-flex h-11 w-11 items-center justify-center rounded border border-line bg-white text-ink hover:border-pool"
                 aria-label={`Edit ${student.full_name}`}
               >
                 <Pencil size={16} />
@@ -1277,7 +1277,7 @@ function StudentList({
               <button
                 type="button"
                 onClick={() => setRemovingStudent(student)}
-                className="focus-ring inline-flex h-10 w-10 items-center justify-center rounded border border-line bg-white text-red-700 hover:border-red-300 hover:bg-red-50"
+                className="focus-ring inline-flex h-11 w-11 items-center justify-center rounded border border-line bg-white text-red-700 hover:border-red-300 hover:bg-red-50"
                 aria-label={`Remove ${student.full_name}`}
               >
                 <Trash2 size={16} />
@@ -1335,14 +1335,14 @@ function EditStudentModal({
   const preview = form.profile_photo_data_url || student.profile_photo_url || "";
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/35 px-4 py-8">
-      <section className="w-full max-w-2xl rounded border border-line bg-white p-5 shadow-soft">
+    <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/35 px-3 py-4 sm:px-4 sm:py-8">
+      <section className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded border border-line bg-white p-4 shadow-soft sm:p-5">
         <div className="mb-5 flex items-center justify-between gap-4">
           <div>
             <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-pool">Student record</p>
             <h3 className="mt-2 text-2xl font-bold text-ink">Edit student</h3>
           </div>
-          <button type="button" onClick={onClose} disabled={saving} className="focus-ring rounded border border-line px-3 py-2 text-sm font-bold text-graphite disabled:opacity-60">
+          <button type="button" onClick={onClose} disabled={saving} className="focus-ring min-h-11 rounded border border-line px-3 py-2 text-sm font-bold text-graphite disabled:opacity-60">
             Close
           </button>
         </div>
@@ -1352,7 +1352,7 @@ function EditStudentModal({
             event.preventDefault();
             await onSave(form);
           }}
-          className="grid gap-4 rounded border border-line bg-paper p-4 lg:grid-cols-[160px_1fr]"
+          className="grid gap-4 rounded border border-line bg-paper p-3 sm:p-4 lg:grid-cols-[160px_1fr]"
         >
           <div className="grid gap-3">
             <div className="grid aspect-square place-items-center overflow-hidden rounded border border-line bg-white">
@@ -1363,7 +1363,7 @@ function EditStudentModal({
                 <UserPlus className="text-graphite" size={42} />
               )}
             </div>
-            <label className="focus-ring inline-flex cursor-pointer items-center justify-center gap-2 rounded border border-line bg-white px-3 py-3 text-sm font-bold text-ink hover:border-pool">
+            <label className="focus-ring inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded border border-line bg-white px-3 py-3 text-sm font-bold text-ink hover:border-pool">
               <Upload size={16} />
               Replace photo
               <input
@@ -1383,21 +1383,21 @@ function EditStudentModal({
               value={form.student_number}
               onChange={(event) => setForm({ ...form, student_number: event.target.value })}
               placeholder="Student ID"
-              className="focus-ring min-w-0 rounded border border-line bg-white px-3 py-3 text-sm font-bold placeholder:text-graphite/55"
+              className="focus-ring min-h-11 min-w-0 rounded border border-line bg-white px-3 py-3 text-sm font-bold placeholder:text-graphite/55"
               required
             />
             <input
               value={form.full_name}
               onChange={(event) => setForm({ ...form, full_name: event.target.value })}
               placeholder="Full name"
-              className="focus-ring min-w-0 rounded border border-line bg-white px-3 py-3 text-sm font-bold placeholder:text-graphite/55"
+              className="focus-ring min-h-11 min-w-0 rounded border border-line bg-white px-3 py-3 text-sm font-bold placeholder:text-graphite/55"
               required
             />
             <input
               value={form.contact_number}
               onChange={(event) => setForm({ ...form, contact_number: event.target.value })}
               placeholder="Contact number"
-              className="focus-ring min-w-0 rounded border border-line bg-white px-3 py-3 text-sm font-bold placeholder:text-graphite/55 sm:col-span-2"
+              className="focus-ring min-h-11 min-w-0 rounded border border-line bg-white px-3 py-3 text-sm font-bold placeholder:text-graphite/55 sm:col-span-2"
             />
             <ControlButton disabled={saving} className="sm:col-span-2">
               {saving ? <Loader2 className="animate-spin" size={16} /> : <Pencil size={16} />}
@@ -1422,22 +1422,22 @@ function RemoveStudentModal({
   onConfirm: () => Promise<void>;
 }) {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/35 px-4 py-8">
-      <section className="w-full max-w-md rounded border border-line bg-white p-5 shadow-soft">
+    <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/35 px-3 py-4 sm:px-4 sm:py-8">
+      <section className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded border border-line bg-white p-4 shadow-soft sm:p-5">
         <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-red-700">Remove from subject</p>
-        <h3 className="mt-2 text-2xl font-bold text-ink">{student.full_name}</h3>
+        <h3 className="mt-2 break-words text-2xl font-bold text-ink">{student.full_name}</h3>
         <p className="mt-3 text-sm font-semibold leading-6 text-graphite">
           This removes the student from this subject list only. Their student record and past attendance records will stay in the system.
         </p>
         <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <button type="button" onClick={onClose} disabled={saving} className="focus-ring rounded border border-line px-4 py-3 text-sm font-bold text-ink disabled:opacity-60">
+          <button type="button" onClick={onClose} disabled={saving} className="focus-ring min-h-11 rounded border border-line px-4 py-3 text-sm font-bold text-ink disabled:opacity-60">
             Cancel
           </button>
           <button
             type="button"
             onClick={onConfirm}
             disabled={saving}
-            className="focus-ring inline-flex items-center justify-center gap-2 rounded bg-red-700 px-4 py-3 text-sm font-bold text-white hover:bg-red-800 disabled:opacity-60"
+            className="focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded bg-red-700 px-4 py-3 text-sm font-bold text-white hover:bg-red-800 disabled:opacity-60"
           >
             {saving ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
             Remove student
@@ -1460,22 +1460,22 @@ function DeleteSessionModal({
   onConfirm: () => Promise<boolean>;
 }) {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/35 px-4 py-8">
-      <section className="w-full max-w-md rounded border border-line bg-white p-5 shadow-soft">
+    <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/35 px-3 py-4 sm:px-4 sm:py-8">
+      <section className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded border border-line bg-white p-4 shadow-soft sm:p-5">
         <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-red-700">Delete session</p>
-        <h3 className="mt-2 text-2xl font-bold text-ink">{displayDateTime(session.start_time)}</h3>
+        <h3 className="mt-2 break-words text-2xl font-bold text-ink">{displayDateTime(session.start_time)}</h3>
         <p className="mt-3 text-sm font-semibold leading-6 text-graphite">
           This deletes the attendance session, all attendance records for this session, and proof photos connected to this session. This cannot be undone.
         </p>
         <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <button type="button" onClick={onClose} disabled={saving} className="focus-ring rounded border border-line px-4 py-3 text-sm font-bold text-ink disabled:opacity-60">
+          <button type="button" onClick={onClose} disabled={saving} className="focus-ring min-h-11 rounded border border-line px-4 py-3 text-sm font-bold text-ink disabled:opacity-60">
             Cancel
           </button>
           <button
             type="button"
             onClick={onConfirm}
             disabled={saving}
-            className="focus-ring inline-flex items-center justify-center gap-2 rounded bg-red-700 px-4 py-3 text-sm font-bold text-white hover:bg-red-800 disabled:opacity-60"
+            className="focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded bg-red-700 px-4 py-3 text-sm font-bold text-white hover:bg-red-800 disabled:opacity-60"
           >
             {saving ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
             Delete session
@@ -1602,10 +1602,10 @@ function AnalyticsPanel({ analytics }: { analytics: AnalyticsPayload | null; cha
                 <p className="mt-1 text-sm font-semibold text-graphite">{group.subtext}</p>
                 <div className="mt-4 grid gap-2">
                   {group.rows.map((student, index) => (
-                    <div key={student.student_id} className="grid grid-cols-[2rem_1fr_auto] items-center gap-2 rounded border border-line bg-white px-3 py-2">
+                    <div key={student.student_id} className="grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-2 rounded border border-line bg-white px-3 py-2 sm:grid-cols-[2rem_minmax(0,1fr)_auto]">
                       <span className="font-mono text-xs font-bold text-graphite">{index + 1}</span>
-                      <span className="truncate text-sm font-bold text-ink">{student.full_name}</span>
-                      <span className="text-xs font-bold text-graphite">{student.label}</span>
+                      <span className="break-words text-sm font-bold text-ink">{student.full_name}</span>
+                      <span className="col-start-2 text-xs font-bold text-graphite sm:col-start-auto">{student.label}</span>
                     </div>
                   ))}
                   {!group.rows.length ? <p className="rounded border border-dashed border-line p-4 text-center text-sm text-graphite">No data yet.</p> : null}
@@ -1658,7 +1658,7 @@ function AnalyticsPanel({ analytics }: { analytics: AnalyticsPayload | null; cha
             <button
               type="button"
               onClick={() => setRiskFilter(null)}
-              className={`focus-ring rounded border px-3 py-2 text-sm font-bold transition ${riskFilter === null ? "border-[#2563eb] bg-blue-50 text-[#102a56]" : "border-line bg-paper text-graphite hover:border-pool"}`}
+              className={`focus-ring min-h-11 rounded border px-3 py-2 text-sm font-bold transition ${riskFilter === null ? "border-[#2563eb] bg-blue-50 text-[#102a56]" : "border-line bg-paper text-graphite hover:border-pool"}`}
             >
               All {analytics.individual.length}
             </button>
@@ -1670,7 +1670,7 @@ function AnalyticsPanel({ analytics }: { analytics: AnalyticsPayload | null; cha
                   key={risk}
                   type="button"
                   onClick={() => setRiskFilter(selected ? null : risk)}
-                  className={`focus-ring rounded border px-3 py-2 text-sm font-bold transition ${selected ? "border-[#2563eb] bg-blue-50 text-[#102a56]" : `${riskTone[risk].border} ${riskTone[risk].bg} ${riskTone[risk].text}`}`}
+                  className={`focus-ring min-h-11 rounded border px-3 py-2 text-sm font-bold transition ${selected ? "border-[#2563eb] bg-blue-50 text-[#102a56]" : `${riskTone[risk].border} ${riskTone[risk].bg} ${riskTone[risk].text}`}`}
                 >
                   {risk} {count}
                 </button>
@@ -1680,7 +1680,7 @@ function AnalyticsPanel({ analytics }: { analytics: AnalyticsPayload | null; cha
           {riskFilter ? (
             <div className="mb-4 flex flex-col gap-2 rounded border border-line bg-paper px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm font-bold text-ink">Showing: {riskFilter} students</p>
-              <button type="button" onClick={() => setRiskFilter(null)} className="focus-ring rounded border border-line bg-white px-3 py-2 text-sm font-bold text-graphite hover:border-pool">
+              <button type="button" onClick={() => setRiskFilter(null)} className="focus-ring min-h-11 rounded border border-line bg-white px-3 py-2 text-sm font-bold text-graphite hover:border-pool">
                 Clear filter
               </button>
             </div>
@@ -1708,7 +1708,7 @@ function AnalyticsPanel({ analytics }: { analytics: AnalyticsPayload | null; cha
                   className={`focus-ring grid gap-3 rounded border border-line bg-paper p-3 text-left transition hover:border-[#2563eb] hover:bg-white xl:grid-cols-[minmax(180px,1.4fr)_90px_70px_80px_130px_100px_150px] xl:items-center ${tone.border}`}
                 >
                   <div className="min-w-0 border-l-4 pl-3" style={{ borderColor: student.risk === "Good" ? "#16a34a" : student.risk === "Watch" ? "#d97706" : student.risk === "At Risk" ? "#ea580c" : "#dc2626" }}>
-                    <p className="truncate font-bold text-ink">{student.full_name}</p>
+                    <p className="break-words font-bold text-ink">{student.full_name}</p>
                     <p className="font-mono text-xs text-graphite">{student.student_number}</p>
                   </div>
                   <span className="text-sm font-bold text-ink">{student.attendance_percentage}%</span>
@@ -1729,14 +1729,14 @@ function AnalyticsPanel({ analytics }: { analytics: AnalyticsPayload | null; cha
       {selectedStudent ? (
         <div className="fixed inset-0 z-50">
           <button type="button" aria-label="Close student details" onClick={() => setSelectedStudent(null)} className="absolute inset-0 bg-ink/35" />
-          <aside className="absolute right-0 top-0 flex h-full w-full max-w-xl flex-col overflow-y-auto border-l border-line bg-white p-5 shadow-soft">
+          <aside className="absolute right-0 top-0 flex h-full w-full max-w-xl flex-col overflow-y-auto border-l border-line bg-white p-4 shadow-soft sm:p-5">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <p className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-pool">Student Details</p>
-                <h3 className="mt-2 text-3xl font-bold text-ink">{selectedStudent.full_name}</h3>
+                <h3 className="mt-2 break-words text-2xl font-bold text-ink sm:text-3xl">{selectedStudent.full_name}</h3>
                 <p className="font-mono text-xs text-graphite">{selectedStudent.student_number}</p>
               </div>
-              <button type="button" onClick={() => setSelectedStudent(null)} className="focus-ring rounded border border-line px-3 py-2 text-sm font-bold text-graphite">
+              <button type="button" onClick={() => setSelectedStudent(null)} className="focus-ring min-h-11 rounded border border-line px-3 py-2 text-sm font-bold text-graphite">
                 <X size={16} />
               </button>
             </div>
@@ -1773,7 +1773,7 @@ function AnalyticsPanel({ analytics }: { analytics: AnalyticsPayload | null; cha
                   <select
                     value={historyMonth}
                     onChange={(event) => setHistoryMonth(event.target.value)}
-                    className="focus-ring rounded border border-line bg-paper px-3 py-2 text-sm font-bold text-ink"
+                    className="focus-ring min-h-11 rounded border border-line bg-paper px-3 py-2 text-sm font-bold text-ink"
                   >
                     <option value="">All months</option>
                     {monthOptions.map(([value, label]) => (
@@ -1893,7 +1893,7 @@ function AlertsPanel({
                     value={formatMilestones(alertSettings.late_milestones)}
                     onChange={(event) => setAlertSettings({ ...alertSettings, late_milestones: parseMilestones(event.target.value) })}
                     placeholder="3, 5, 7"
-                    className="focus-ring rounded border border-line bg-paper px-3 py-3 text-ink"
+                    className="focus-ring min-h-11 min-w-0 rounded border border-line bg-paper px-3 py-3 text-ink"
                   />
                 </label>
                 <label className="grid gap-2 text-sm font-bold text-graphite">
@@ -1902,7 +1902,7 @@ function AlertsPanel({
                     value={formatMilestones(alertSettings.absent_milestones)}
                     onChange={(event) => setAlertSettings({ ...alertSettings, absent_milestones: parseMilestones(event.target.value) })}
                     placeholder="2, 4, 6"
-                    className="focus-ring rounded border border-line bg-paper px-3 py-3 text-ink"
+                    className="focus-ring min-h-11 min-w-0 rounded border border-line bg-paper px-3 py-3 text-ink"
                   />
                 </label>
               </div>
@@ -1942,7 +1942,7 @@ function AlertsPanel({
                 <ControlButton type="button" onClick={() => saveAlertSettings(false)} disabled={savingAlerts}>
                   Save alert settings
                 </ControlButton>
-                <button type="button" onClick={() => saveAlertSettings(true)} disabled={savingAlerts} className="focus-ring rounded border border-line bg-white px-4 py-3 font-bold text-ink hover:border-pool disabled:opacity-60">
+                <button type="button" onClick={() => saveAlertSettings(true)} disabled={savingAlerts} className="focus-ring min-h-11 rounded border border-line bg-white px-4 py-3 font-bold text-ink hover:border-pool disabled:opacity-60">
                   Reset alert period
                 </button>
               </div>
@@ -1987,7 +1987,7 @@ function AlertsPanel({
                       type="button"
                       onClick={() => triggerType && openComposer(student, triggerType)}
                       disabled={!canSend}
-                      className="focus-ring rounded border border-line bg-white px-3 py-2 text-sm font-bold text-ink hover:border-pool disabled:cursor-not-allowed disabled:opacity-50"
+                      className="focus-ring min-h-11 rounded border border-line bg-white px-3 py-2 text-sm font-bold text-ink hover:border-pool disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Send SMS
                     </button>
@@ -2001,15 +2001,15 @@ function AlertsPanel({
       </section>
 
       {smsDraft ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/35 px-4 py-8">
-          <section className="w-full max-w-xl rounded border border-line bg-white p-5 shadow-soft">
+        <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/35 px-3 py-4 sm:px-4 sm:py-8">
+          <section className="max-h-[calc(100vh-2rem)] w-full max-w-xl overflow-y-auto rounded border border-line bg-white p-4 shadow-soft sm:p-5">
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
                 <p className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-graphite">{smsDraft.triggerType === "late" ? "Late warning" : "Absent warning"}</p>
-                <h3 className="mt-1 text-2xl font-bold text-ink">{smsDraft.student.full_name}</h3>
+                <h3 className="mt-1 break-words text-2xl font-bold text-ink">{smsDraft.student.full_name}</h3>
                 <p className="mt-1 text-sm font-semibold text-graphite">{smsDraft.student.contact_number}</p>
               </div>
-              <button type="button" onClick={() => setSmsDraft(null)} className="focus-ring rounded border border-line px-3 py-2 text-sm font-bold text-graphite">
+              <button type="button" onClick={() => setSmsDraft(null)} className="focus-ring min-h-11 rounded border border-line px-3 py-2 text-sm font-bold text-graphite">
                 <X size={16} />
               </button>
             </div>
@@ -2023,7 +2023,7 @@ function AlertsPanel({
               />
             </label>
             <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <button type="button" onClick={() => setSmsDraft(null)} className="focus-ring rounded border border-line bg-white px-4 py-3 font-bold text-ink hover:border-pool">
+              <button type="button" onClick={() => setSmsDraft(null)} className="focus-ring min-h-11 rounded border border-line bg-white px-4 py-3 font-bold text-ink hover:border-pool">
                 Cancel
               </button>
               <ControlButton type="button" onClick={confirmSend} disabled={sending || !smsDraft.message.trim()}>
@@ -2052,11 +2052,11 @@ function ReviewModal({
   onConfirm: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/35 px-4 py-8">
-      <section className="w-full max-w-3xl rounded border border-line bg-white p-5 shadow-soft">
+    <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/35 px-3 py-4 sm:px-4 sm:py-8">
+      <section className="max-h-[calc(100vh-2rem)] w-full max-w-3xl overflow-y-auto rounded border border-line bg-white p-4 shadow-soft sm:p-5">
         <div className="mb-4 flex items-center justify-between gap-4">
-          <h2 className="text-2xl font-bold text-ink">{title}</h2>
-          <button type="button" onClick={onClose} className="focus-ring rounded border border-line px-3 py-2 text-sm font-bold text-graphite">
+          <h2 className="break-words text-2xl font-bold text-ink">{title}</h2>
+          <button type="button" onClick={onClose} className="focus-ring min-h-11 rounded border border-line px-3 py-2 text-sm font-bold text-graphite">
             Close
           </button>
         </div>

@@ -74,13 +74,13 @@ export function SettingsPanel() {
   }
 
   return (
-    <form onSubmit={save} className="mx-auto grid max-w-3xl gap-5">
-      <div>
+    <form onSubmit={save} className="mx-auto grid max-w-3xl min-w-0 gap-5">
+      <div className="min-w-0">
         <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-pool">Global controls</p>
-        <h1 className="mt-2 text-4xl font-bold tracking-tight text-ink">Settings</h1>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight text-ink md:text-4xl">Settings</h1>
       </div>
 
-      <section className="rounded border border-line bg-white p-5 shadow-sm">
+      <section className="min-w-0 rounded border border-line bg-white p-4 shadow-sm sm:p-5">
         <h2 className="mb-4 text-xl font-bold text-ink">SMS alerts</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="grid gap-2 text-sm font-semibold text-graphite">
@@ -90,7 +90,7 @@ export function SettingsPanel() {
               min={1}
               value={settings.default_late_limit}
               onChange={(event) => setSettings({ ...settings, default_late_limit: Number(event.target.value) })}
-              className="focus-ring rounded border border-line bg-paper px-3 py-3 text-ink"
+              className="focus-ring min-h-12 min-w-0 rounded border border-line bg-paper px-3 py-3 text-ink"
             />
           </label>
           <label className="grid gap-2 text-sm font-semibold text-graphite">
@@ -100,10 +100,10 @@ export function SettingsPanel() {
               min={1}
               value={settings.default_absent_limit}
               onChange={(event) => setSettings({ ...settings, default_absent_limit: Number(event.target.value) })}
-              className="focus-ring rounded border border-line bg-paper px-3 py-3 text-ink"
+              className="focus-ring min-h-12 min-w-0 rounded border border-line bg-paper px-3 py-3 text-ink"
             />
           </label>
-          <label className="flex items-center justify-between gap-3 rounded border border-line bg-paper px-3 py-3 text-sm font-semibold text-graphite sm:col-span-2">
+          <label className="flex min-h-12 items-center justify-between gap-3 rounded border border-line bg-paper px-3 py-3 text-sm font-semibold text-graphite sm:col-span-2">
             Default automatic SMS
             <input
               type="checkbox"
@@ -115,7 +115,7 @@ export function SettingsPanel() {
         </div>
       </section>
 
-      <section className="rounded border border-line bg-white p-5 shadow-sm">
+      <section className="min-w-0 rounded border border-line bg-white p-4 shadow-sm sm:p-5">
         <h2 className="mb-4 text-xl font-bold text-ink">Storage</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="grid gap-2 text-sm font-semibold text-graphite">
@@ -125,7 +125,7 @@ export function SettingsPanel() {
               min={30}
               value={settings.proof_retention_days}
               onChange={(event) => setSettings({ ...settings, proof_retention_days: Number(event.target.value) })}
-              className="focus-ring rounded border border-line bg-paper px-3 py-3 text-ink"
+              className="focus-ring min-h-12 min-w-0 rounded border border-line bg-paper px-3 py-3 text-ink"
             />
           </label>
           <label className="grid gap-2 text-sm font-semibold text-graphite">
@@ -135,7 +135,7 @@ export function SettingsPanel() {
               min={100}
               value={settings.storage_warning_mb}
               onChange={(event) => setSettings({ ...settings, storage_warning_mb: Number(event.target.value) })}
-              className="focus-ring rounded border border-line bg-paper px-3 py-3 text-ink"
+              className="focus-ring min-h-12 min-w-0 rounded border border-line bg-paper px-3 py-3 text-ink"
             />
           </label>
         </div>
@@ -144,7 +144,7 @@ export function SettingsPanel() {
       {error ? <p className="rounded border border-signal bg-red-50 px-3 py-2 text-sm font-semibold text-signal">{error}</p> : null}
       {message ? <p className="rounded border border-ledger bg-green-50 px-3 py-2 text-sm font-semibold text-ledger">{message}</p> : null}
 
-      <button disabled={saving} className="focus-ring inline-flex items-center justify-center gap-2 rounded bg-ledger px-5 py-3 font-bold text-white transition hover:bg-ink disabled:opacity-60">
+      <button disabled={saving} className="focus-ring inline-flex min-h-12 items-center justify-center gap-2 rounded bg-ledger px-5 py-3 font-bold text-white transition hover:bg-ink disabled:opacity-60">
         {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
         Save settings
       </button>

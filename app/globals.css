@@ -71,7 +71,7 @@ a {
 .cockpit-shell {
   position: relative;
   min-height: 100vh;
-  overflow: hidden;
+  overflow-x: hidden;
   background-color: var(--cockpit-bg);
   background-image:
     linear-gradient(rgba(159, 192, 232, 0.78) 1px, transparent 1px),
@@ -90,6 +90,26 @@ a {
   border: 1px solid rgba(159, 185, 214, 0.3);
   border-bottom: 0;
   clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px), 0 14px);
+}
+
+.selection-card-title {
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+@media (max-width: 767px) {
+  .cockpit-shell {
+    background-size: 44px 44px, 44px 44px, auto, auto;
+  }
+
+  .cockpit-shell::before {
+    inset: 152px 8px 32px;
+    opacity: 0.62;
+  }
+
+  .cockpit-card {
+    clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px), 0 14px);
+  }
 }
 
 .cockpit-card {
