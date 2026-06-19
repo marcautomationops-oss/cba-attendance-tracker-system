@@ -5,47 +5,45 @@ import { ChevronLeft, Plus } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { AddItemForm, AddItemSheet, PrimaryButton, SelectionCard } from "@/components/AdaptiveSelection";
 import { DeleteControlModal } from "@/components/DeleteControlModal";
+import { SectionWorkspaceSkeleton } from "@/components/LoadingSkeletons";
 import type { Section, Subject } from "@/lib/types";
 
 export function SectionWorkspace({ sectionId }: { sectionId: string }) {
   const [section, setSection] = useState<Section | null>(null);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [subjectName, setSubjectName] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [mobileAddOpen, setMobileAddOpen] = useState(false);
   const [error, setError] = useState("");
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (showSkeleton = false) => {
+    if (showSkeleton) setIsLoading(true);
     setError("");
 
-    const sectionResponse = await fetch(`/api/sections/${sectionId}`, { cache: "no-store" });
-    const sectionPayload = await sectionResponse.json();
+    try {
+      const [sectionResponse, subjectsResponse] = await Promise.all([
+        fetch(`/api/sections/${sectionId}`, { cache: "no-store" }),
+        fetch(`/api/sections/${sectionId}/subjects`, { cache: "no-store" })
+      ]);
+      const [sectionPayload, subjectsPayload] = await Promise.all([sectionResponse.json(), subjectsResponse.json()]);
 
-    if (!sectionResponse.ok) {
-      setError(sectionPayload.error || "Section could not load.");
-      setLoading(false);
-      return;
+      if (!sectionResponse.ok) return setError(sectionPayload.error || "Section could not load.");
+      if (!subjectsResponse.ok) return setError(subjectsPayload.error || "Subjects could not load.");
+
+      setSection(sectionPayload.section);
+      setSubjects(subjectsPayload.subjects || []);
+    } catch {
+      setError("Section could not load. Check the server connection.");
+    } finally {
+      if (showSkeleton) setIsLoading(false);
     }
-
-    const subjectsResponse = await fetch(`/api/sections/${sectionId}/subjects`, { cache: "no-store" });
-
-    const subjectsPayload = await subjectsResponse.json();
-    setLoading(false);
-
-    if (!subjectsResponse.ok) {
-      setError(subjectsPayload.error || "Subjects could not load.");
-      return;
-    }
-    setSection(sectionPayload.section);
-    setSubjects(subjectsPayload.subjects || []);
   }, [sectionId]);
 
   useEffect(() => {
-    load();
+    load(true);
   }, [load]);
 
   async function addSubject(event: FormEvent<HTMLFormElement>) {
@@ -89,8 +87,8 @@ export function SectionWorkspace({ sectionId }: { sectionId: string }) {
     await load();
   }
 
-  if (loading) {
-    return <div className="rounded border border-line bg-white p-5 shadow-soft">Loading section</div>;
+  if (isLoading) {
+    return <SectionWorkspaceSkeleton />;
   }
 
   if (!section) {

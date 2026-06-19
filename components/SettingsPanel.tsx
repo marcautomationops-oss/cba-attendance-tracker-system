@@ -2,6 +2,7 @@
 
 import { Loader2, Save } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
+import { SettingsPanelSkeleton } from "@/components/LoadingSkeletons";
 
 type Settings = {
   default_late_limit: number;
@@ -21,21 +22,26 @@ const fallback: Settings = {
 
 export function SettingsPanel() {
   const [settings, setSettings] = useState<Settings>(fallback);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
     async function load() {
-      const response = await fetch("/api/settings", { cache: "no-store" });
-      const payload = await response.json();
-      setLoading(false);
-      if (!response.ok) {
-        setError(payload.error || "Settings could not load.");
-        return;
+      try {
+        const response = await fetch("/api/settings", { cache: "no-store" });
+        const payload = await response.json();
+        if (!response.ok) {
+          setError(payload.error || "Settings could not load.");
+          return;
+        }
+        setSettings({ ...fallback, ...payload.settings });
+      } catch {
+        setError("Settings could not load. Check the server connection.");
+      } finally {
+        setIsLoading(false);
       }
-      setSettings({ ...fallback, ...payload.settings });
     }
 
     load();
@@ -64,13 +70,8 @@ export function SettingsPanel() {
     setMessage("Settings saved.");
   }
 
-  if (loading) {
-    return (
-      <div className="rounded border border-line bg-white p-5 shadow-soft">
-        <Loader2 className="mr-2 inline animate-spin" size={18} />
-        Loading settings
-      </div>
-    );
+  if (isLoading) {
+    return <SettingsPanelSkeleton />;
   }
 
   return (

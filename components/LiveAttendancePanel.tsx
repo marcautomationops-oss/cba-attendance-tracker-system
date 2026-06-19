@@ -1,28 +1,30 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { AttendanceRecordRows } from "@/components/AttendanceRecordRows";
+import { AttendanceRowsSkeleton, SkeletonBlock } from "@/components/LoadingSkeletons";
 import type { DashboardRecord } from "@/lib/types";
 
 export function LiveAttendancePanel({ sessionId }: { sessionId: string }) {
   const [records, setRecords] = useState<DashboardRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
-    const response = await fetch(`/api/sessions/${sessionId}/records`, { cache: "no-store" });
-    const payload = await response.json();
-
-    setLoading(false);
-
-    if (!response.ok) {
-      setError(payload.error || "Could not load attendance.");
-      return;
+    try {
+      const response = await fetch(`/api/sessions/${sessionId}/records`, { cache: "no-store" });
+      const payload = await response.json();
+      if (!response.ok) {
+        setError(payload.error || "Could not load attendance.");
+        return;
+      }
+      setError("");
+      setRecords(payload.records || []);
+    } catch {
+      setError("Could not load attendance. Check the server connection.");
+    } finally {
+      setIsLoading(false);
     }
-
-    setError("");
-    setRecords(payload.records || []);
   }, [sessionId]);
 
   useEffect(() => {
@@ -40,12 +42,12 @@ export function LiveAttendancePanel({ sessionId }: { sessionId: string }) {
     };
   }, [load]);
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex h-full min-h-[480px] items-center justify-center rounded border border-line bg-white p-6 text-graphite">
-        <Loader2 className="mr-2 animate-spin" size={18} />
-        Loading students
-      </div>
+      <section className="min-h-[360px] rounded border border-line bg-white p-4 shadow-soft sm:p-5 md:min-h-[480px] 2xl:p-7">
+        <SkeletonBlock className="mb-5 h-8 w-32" />
+        <AttendanceRowsSkeleton />
+      </section>
     );
   }
 

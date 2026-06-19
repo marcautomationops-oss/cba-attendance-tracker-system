@@ -26,6 +26,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ButtonHTMLAttributes, type ComponentType, type FormEvent, type ReactNode } from "react";
 import { AttendanceRecordRows } from "@/components/AttendanceRecordRows";
 import { LiveAttendancePanel } from "@/components/LiveAttendancePanel";
+import { AlertsSkeleton, AnalyticsSkeleton, AttendanceRowsSkeleton } from "@/components/LoadingSkeletons";
 import { QRCodeDisplay } from "@/components/QRCodeDisplay";
 import { SubjectWorkspaceSkeleton } from "@/components/SubjectWorkspaceSkeleton";
 import { displayDateTime } from "@/lib/attendance";
@@ -262,9 +263,11 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
   const [removingStudentId, setRemovingStudentId] = useState<string | null>(null);
   const [sessionSummaries, setSessionSummaries] = useState<Record<string, SessionSummary>>({});
   const [selectedSessionRecords, setSelectedSessionRecords] = useState<SessionRecords | null>(null);
-  const [loadingSelectedSession, setLoadingSelectedSession] = useState(false);
+  const [isLoadingSelectedSession, setIsLoadingSelectedSession] = useState(false);
   const [analytics, setAnalytics] = useState<AnalyticsPayload | null>(null);
+  const [analyticsLoaded, setAnalyticsLoaded] = useState(false);
   const [alertSettings, setAlertSettings] = useState<AlertSettings | null>(null);
+  const [alertsLoaded, setAlertsLoaded] = useState(false);
   const [savingAlerts, setSavingAlerts] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
@@ -338,34 +341,52 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
   }, [sectionId, subjectId]);
 
   const loadAnalytics = useCallback(async () => {
-    const response = await fetch(`/api/subjects/${subjectId}/analytics`, { cache: "no-store" });
-    const payload = await response.json();
-    if (response.ok) setAnalytics(payload);
+    try {
+      const response = await fetch(`/api/subjects/${subjectId}/analytics`, { cache: "no-store" });
+      const payload = await response.json();
+      if (response.ok) setAnalytics(payload);
+      else setError(payload.error || "Analytics could not load.");
+    } catch {
+      setError("Analytics could not load. Check the server connection.");
+    } finally {
+      setAnalyticsLoaded(true);
+    }
   }, [subjectId]);
 
   const loadAlerts = useCallback(async () => {
-    const response = await fetch(`/api/subjects/${subjectId}/alerts/settings`, { cache: "no-store" });
-    const payload = await response.json();
-    if (response.ok) setAlertSettings(payload.settings);
+    try {
+      const response = await fetch(`/api/subjects/${subjectId}/alerts/settings`, { cache: "no-store" });
+      const payload = await response.json();
+      if (response.ok) setAlertSettings(payload.settings);
+      else setError(payload.error || "Alert settings could not load.");
+    } catch {
+      setError("Alert settings could not load. Check the server connection.");
+    } finally {
+      setAlertsLoaded(true);
+    }
   }, [subjectId]);
 
   const loadSelectedSession = useCallback(async () => {
     if (!selectedSessionId) return;
-    setLoadingSelectedSession(true);
+    setIsLoadingSelectedSession(true);
     setError("");
-    const response = await fetch(`/api/sessions/${selectedSessionId}/records`, { cache: "no-store" });
-    const payload = await response.json();
-    setLoadingSelectedSession(false);
+    try {
+      const response = await fetch(`/api/sessions/${selectedSessionId}/records`, { cache: "no-store" });
+      const payload = await response.json();
+      if (!response.ok) {
+        setError(payload.error || "Session records could not load.");
+        return;
+      }
 
-    if (!response.ok) {
-      setError(payload.error || "Session records could not load.");
-      return;
+      setSelectedSessionRecords({
+        records: payload.records || [],
+        counts: payload.counts || { on_time: 0, late: 0, absent: 0, sick: 0, leave: 0, excused: 0, repeatedLate: 0, repeatedAbsent: 0 }
+      });
+    } catch {
+      setError("Session records could not load. Check the server connection.");
+    } finally {
+      setIsLoadingSelectedSession(false);
     }
-
-    setSelectedSessionRecords({
-      records: payload.records || [],
-      counts: payload.counts || { on_time: 0, late: 0, absent: 0, sick: 0, leave: 0, excused: 0, repeatedLate: 0, repeatedAbsent: 0 }
-    });
   }, [selectedSessionId]);
 
   useEffect(() => {
@@ -788,7 +809,7 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
             selectedSession={selectedSession}
             selectedSessionId={selectedSessionId}
             records={selectedSessionRecords}
-            loading={loadingSelectedSession}
+            isLoading={isLoadingSelectedSession}
             openSession={(sessionId) => setWorkspace("history", sessionId)}
             back={() => setWorkspace("history")}
             reload={loadSelectedSession}
@@ -796,12 +817,13 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
           />
         ) : null}
 
-        {tab === "analytics" ? <AnalyticsPanel analytics={analytics} chartTotal={chartTotal} /> : null}
+        {tab === "analytics" ? <AnalyticsPanel analytics={analytics} chartTotal={chartTotal} loaded={analyticsLoaded} /> : null}
 
         {tab === "alerts" ? (
           <AlertsPanel
             analytics={analytics}
             alertSettings={alertSettings}
+            loaded={analyticsLoaded && alertsLoaded}
             savingAlerts={savingAlerts}
             setAlertSettings={setAlertSettings}
             saveAlertSettings={saveAlertSettings}
@@ -1139,7 +1161,7 @@ function HistoryTab({
   selectedSession,
   selectedSessionId,
   records,
-  loading,
+  isLoading,
   openSession,
   back,
   reload,
@@ -1150,7 +1172,7 @@ function HistoryTab({
   selectedSession: AttendanceSession | null;
   selectedSessionId: string | null;
   records: SessionRecords | null;
-  loading: boolean;
+  isLoading: boolean;
   openSession: (sessionId: string) => void;
   back: () => void;
   reload: () => void;
@@ -1195,11 +1217,8 @@ function HistoryTab({
           <CountCard label="Absent" value={counts?.absent ?? 0} tone="gray" />
           <CountCard label="Excused" value={(counts?.excused || 0) + (counts?.sick || 0) + (counts?.leave || 0)} tone="blue" />
         </div>
-        {loading ? (
-          <div className="flex items-center justify-center rounded border border-line bg-paper p-8 text-graphite">
-            <Loader2 className="mr-2 animate-spin" size={18} />
-            Loading records
-          </div>
+        {isLoading ? (
+          <AttendanceRowsSkeleton />
         ) : (
           <AttendanceRecordRows sessionId={selectedSessionId} records={records?.records || []} onChanged={reload} emptyText="No records for this session." />
         )}
@@ -1530,14 +1549,16 @@ function percent(value: number, total: number) {
   return Math.max(0, Math.min(100, Math.round((value / total) * 100)));
 }
 
-function AnalyticsPanel({ analytics }: { analytics: AnalyticsPayload | null; chartTotal: number }) {
+function AnalyticsPanel({ analytics, loaded }: { analytics: AnalyticsPayload | null; chartTotal: number; loaded: boolean }) {
   const [selectedStudent, setSelectedStudent] = useState<IndividualAnalytics | null>(null);
   const [riskFilter, setRiskFilter] = useState<RiskLevel | null>(null);
   const [historyMonth, setHistoryMonth] = useState("");
 
-  if (!analytics) {
-    return <div className="rounded border border-line bg-white p-5 shadow-soft">Loading analytics</div>;
+  if (!loaded) {
+    return <AnalyticsSkeleton />;
   }
+
+  if (!analytics) return <div className="rounded border border-signal bg-red-50 p-4 font-semibold text-signal">Analytics could not load.</div>;
 
   const summary = analytics.summary || { class_attendance: 0, total_sessions: 0, students_at_risk: 0, late_count: 0, absent_count: 0, sms_alerts: 0 };
   const topCards = [
@@ -1847,6 +1868,7 @@ function renderSmsTemplate(template: string, student: IndividualAnalytics, trigg
 function AlertsPanel({
   analytics,
   alertSettings,
+  loaded,
   savingAlerts,
   setAlertSettings,
   saveAlertSettings,
@@ -1854,6 +1876,7 @@ function AlertsPanel({
 }: {
   analytics: AnalyticsPayload | null;
   alertSettings: AlertSettings | null;
+  loaded: boolean;
   savingAlerts: boolean;
   setAlertSettings: (value: AlertSettings) => void;
   saveAlertSettings: (reset?: boolean) => void;
@@ -1876,13 +1899,18 @@ function AlertsPanel({
     if (sent) setSmsDraft(null);
   }
 
+  if (!loaded) {
+    return <AlertsSkeleton />;
+  }
+
+  if (!alertSettings || !analytics) return <div className="rounded border border-signal bg-red-50 p-4 font-semibold text-signal">Alerts could not load.</div>;
+
   return (
     <>
       <section className="grid min-w-0 gap-5 xl:grid-cols-[420px_minmax(0,1fr)]">
         <div className="min-w-0 rounded border border-line bg-white p-5 shadow-sm">
           <h2 className="mb-4 text-2xl font-bold text-ink">SMS alerts</h2>
-          {alertSettings ? (
-            <div className="grid gap-4">
+          <div className="grid gap-4">
               <label className="flex items-center justify-between rounded border border-line bg-paper px-3 py-3 text-sm font-bold text-graphite">
                 Automatic SMS
                 <input
@@ -1952,10 +1980,7 @@ function AlertsPanel({
                   Reset alert period
                 </button>
               </div>
-            </div>
-          ) : (
-            <p className="text-sm text-graphite">Loading alert settings</p>
-          )}
+          </div>
         </div>
         <div className="min-w-0 rounded border border-line bg-white p-5 shadow-sm">
           <h2 className="mb-4 text-2xl font-bold text-ink">Needs attention</h2>

@@ -2,6 +2,7 @@
 
 import { Camera, CheckCircle2, Loader2, RefreshCw, Send } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, FormEvent } from "react";
+import { StudentAttendanceSkeleton } from "@/components/LoadingSkeletons";
 import { displayDateTime, statusLabel } from "@/lib/attendance";
 import type { AttendanceStatus } from "@/lib/types";
 
@@ -86,7 +87,7 @@ export function StudentAttendance({ sessionToken }: { sessionToken: string }) {
   const [mobileCapture, setMobileCapture] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [preparingPhoto, setPreparingPhoto] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
   const [error, setError] = useState("");
@@ -101,16 +102,22 @@ export function StudentAttendance({ sessionToken }: { sessionToken: string }) {
     setMobileCapture(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.matchMedia("(pointer: coarse)").matches);
 
     async function load() {
-      const response = await fetch(`/api/attendance/${sessionToken}`, { cache: "no-store" });
-      const payload = await response.json();
-      setLoading(false);
-      if (!response.ok) {
+      try {
+        const response = await fetch(`/api/attendance/${sessionToken}`, { cache: "no-store" });
+        const payload = await response.json();
+        if (!response.ok) {
+          setLoadFailed(true);
+          setError(payload.error || "Attendance link could not be opened.");
+          return;
+        }
+        setSession(payload.session);
+        setStudents(payload.students || []);
+      } catch {
         setLoadFailed(true);
-        setError(payload.error || "Attendance link could not be opened.");
-        return;
+        setError("Attendance link could not be opened. Check your connection.");
+      } finally {
+        setIsLoading(false);
       }
-      setSession(payload.session);
-      setStudents(payload.students || []);
     }
 
     load();
@@ -223,15 +230,8 @@ export function StudentAttendance({ sessionToken }: { sessionToken: string }) {
     setSuccess(payload);
   }
 
-  if (loading) {
-    return (
-      <main className="grid min-h-screen place-items-center px-4">
-        <div className="rounded border border-line bg-white p-6 shadow-soft">
-          <Loader2 className="mr-2 inline animate-spin" size={18} />
-          Opening attendance
-        </div>
-      </main>
-    );
+  if (isLoading) {
+    return <StudentAttendanceSkeleton />;
   }
 
   if (loadFailed) {

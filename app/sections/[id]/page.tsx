@@ -1,5 +1,4 @@
 import { SectionWorkspace } from "@/components/SectionWorkspace";
-import { TeacherShell } from "@/components/TeacherShell";
 
 export const dynamic = "force-dynamic";
 
@@ -9,10 +8,5 @@ type Props = {
 
 export default async function SectionPage({ params }: Props) {
   const { id } = await params;
-
-  return (
-    <TeacherShell>
-      <SectionWorkspace sectionId={id} />
-    </TeacherShell>
-  );
+  return <SectionWorkspace sectionId={id} />;
 }
