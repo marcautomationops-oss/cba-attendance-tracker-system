@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { changeAccessCode } from "@/lib/accessCode";
 import { jsonError, parseJson, requireTeacher } from "@/lib/api";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -8,6 +9,8 @@ type SettingsBody = {
   default_automatic_sms?: boolean;
   proof_retention_days?: number;
   storage_warning_mb?: number;
+  current_access_code?: string;
+  new_access_code?: string;
 };
 
 export async function GET(request: Request) {
@@ -18,9 +21,10 @@ export async function GET(request: Request) {
   const { data, error } = await supabase.from("app_settings").select("*").eq("id", 1).single();
 
   if (error) return jsonError(error.message, 500);
-  const { semaphore_api_key, semaphore_sender_name, ...safeSettings } = data;
+  const { semaphore_api_key, semaphore_sender_name, access_code_hash, ...safeSettings } = data;
   void semaphore_api_key;
   void semaphore_sender_name;
+  void access_code_hash;
   return NextResponse.json({ settings: safeSettings });
 }
 
@@ -29,6 +33,14 @@ export async function PATCH(request: Request) {
 
   const body = await parseJson<SettingsBody>(request);
   if (!body) return jsonError("Settings payload is required.");
+
+  if (body.new_access_code) {
+    try {
+      await changeAccessCode(body.current_access_code || "", body.new_access_code);
+    } catch (error) {
+      return jsonError(error instanceof Error ? error.message : "Access code could not be changed.");
+    }
+  }
 
   const supabase = getSupabaseAdmin();
   const nextSettings = {
@@ -43,8 +55,9 @@ export async function PATCH(request: Request) {
 
   const { data, error } = await supabase.from("app_settings").upsert(nextSettings, { onConflict: "id" }).select("*").single();
   if (error) return jsonError(error.message, 500);
-  const { semaphore_api_key, semaphore_sender_name, ...safeSettings } = data;
+  const { semaphore_api_key, semaphore_sender_name, access_code_hash, ...safeSettings } = data;
   void semaphore_api_key;
   void semaphore_sender_name;
+  void access_code_hash;
   return NextResponse.json({ settings: safeSettings });
 }

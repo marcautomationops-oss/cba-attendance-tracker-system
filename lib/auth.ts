@@ -9,22 +9,14 @@ type SessionPayload = {
 
 const encoder = new TextEncoder();
 
-function getAccessCode() {
-  return process.env.TEACHER_ACCESS_CODE || "";
-}
-
 function getAuthSecret() {
-  const configured = process.env.AUTH_SECRET || "";
-  if (configured) return configured;
-
-  // Keep local development usable while requiring a separate secret in production.
-  return process.env.NODE_ENV === "production" ? "" : getAccessCode();
+  return process.env.AUTH_SECRET || "";
 }
 
 function getSessionSigningKey() {
-  const accessCode = getAccessCode();
   const authSecret = getAuthSecret();
-  return accessCode && authSecret ? `${authSecret}:${accessCode}` : "";
+  if (process.env.NODE_ENV === "production" && authSecret.length < 32) return "";
+  return authSecret;
 }
 
 function encodeBase64Url(bytes: Uint8Array) {
@@ -37,10 +29,6 @@ function decodeBase64Url(value: string) {
   const padded = value.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(value.length / 4) * 4, "=");
   const binary = atob(padded);
   return Uint8Array.from(binary, (character) => character.charCodeAt(0));
-}
-
-async function sha256(value: string) {
-  return new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(value)));
 }
 
 async function hmac(value: string, secret: string) {
@@ -92,10 +80,4 @@ export async function validateTeacherSession(session: string | undefined | null)
   } catch {
     return false;
   }
-}
-
-export async function validateAccessCode(accessCode: string) {
-  const expected = getAccessCode();
-  if (!expected || !accessCode) return false;
-  return secureEqual(await sha256(accessCode), await sha256(expected));
 }

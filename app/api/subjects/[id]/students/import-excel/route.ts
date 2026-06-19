@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { cleanText, jsonError, parseJson, requireTeacher } from "@/lib/api";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -91,11 +91,27 @@ export async function POST(request: Request, context: Context) {
   const file = form.get("file");
   if (!(file instanceof File)) return jsonError("Upload an .xlsx file.");
   if (!file.name.toLowerCase().endsWith(".xlsx")) return jsonError("Excel import accepts .xlsx files only.");
+  if (file.size > 2_000_000) return jsonError("Excel file must be 2 MB or smaller.");
 
   const bytes = await file.arrayBuffer();
-  const workbook = XLSX.read(bytes, { type: "array" });
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
+  const workbook = new ExcelJS.Workbook();
+  const workbookBytes = Buffer.from(bytes) as unknown as Parameters<typeof workbook.xlsx.load>[0];
+  await workbook.xlsx.load(workbookBytes);
+  const sheet = workbook.worksheets[0];
+  if (!sheet) return jsonError("The workbook does not contain a worksheet.");
+  if (sheet.actualRowCount > 2_001) return jsonError("Excel import supports up to 2,000 students at a time.");
+
+  const headers = sheet.getRow(1).values as ExcelJS.CellValue[];
+  const rows: Record<string, unknown>[] = [];
+  sheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return;
+    const record: Record<string, unknown> = {};
+    for (let column = 1; column < headers.length; column += 1) {
+      const header = String(headers[column] || "").trim();
+      if (header) record[header] = row.getCell(column).text;
+    }
+    rows.push(record);
+  });
 
   const seen = new Set<string>();
   const reviewRows: ReviewRow[] = rows.map((row, index) => {

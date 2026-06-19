@@ -3,9 +3,7 @@ import { jsonError, requireTeacher } from "@/lib/api";
 import { ATTENDANCE_BUCKET } from "@/lib/storage";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
-export async function POST(request: Request) {
-  if (!(await requireTeacher(request))) return jsonError("Teacher login required.", 401);
-
+async function cleanupProofs() {
   const supabase = getSupabaseAdmin();
   const { data: settings } = await supabase.from("app_settings").select("proof_retention_days").eq("id", 1).maybeSingle();
   const retentionDays = Number(settings?.proof_retention_days || 180);
@@ -22,7 +20,8 @@ export async function POST(request: Request) {
 
   const paths = (records || []).map((record) => record.photo_path).filter(Boolean);
   if (paths.length) {
-    await supabase.storage.from(ATTENDANCE_BUCKET).remove(paths);
+    const { error: removeError } = await supabase.storage.from(ATTENDANCE_BUCKET).remove(paths);
+    if (removeError) return jsonError(removeError.message, 500);
     const { error: updateError } = await supabase
       .from("attendance_records")
       .update({ photo_path: null, photo_deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
@@ -34,4 +33,17 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ deleted: paths.length, retentionDays });
+}
+
+export async function GET(request: Request) {
+  const cronSecret = process.env.CRON_SECRET || "";
+  if (!cronSecret || request.headers.get("authorization") !== `Bearer ${cronSecret}`) {
+    return jsonError("Maintenance authorization required.", 401);
+  }
+  return cleanupProofs();
+}
+
+export async function POST(request: Request) {
+  if (!(await requireTeacher(request))) return jsonError("Teacher login required.", 401);
+  return cleanupProofs();
 }

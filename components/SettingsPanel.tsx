@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Save } from "lucide-react";
+import { KeyRound, Loader2, Save } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { SettingsPanelSkeleton } from "@/components/LoadingSkeletons";
 
@@ -26,6 +26,9 @@ export function SettingsPanel() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [currentAccessCode, setCurrentAccessCode] = useState("");
+  const [newAccessCode, setNewAccessCode] = useState("");
+  const [confirmAccessCode, setConfirmAccessCode] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -49,6 +52,10 @@ export function SettingsPanel() {
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (newAccessCode && newAccessCode !== confirmAccessCode) {
+      setError("New access codes do not match.");
+      return;
+    }
     setSaving(true);
     setError("");
     setMessage("");
@@ -56,7 +63,11 @@ export function SettingsPanel() {
     const response = await fetch("/api/settings", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(settings)
+      body: JSON.stringify({
+        ...settings,
+        current_access_code: newAccessCode ? currentAccessCode : undefined,
+        new_access_code: newAccessCode || undefined
+      })
     });
     const payload = await response.json();
     setSaving(false);
@@ -67,7 +78,10 @@ export function SettingsPanel() {
     }
 
     setSettings({ ...fallback, ...payload.settings });
-    setMessage("Settings saved.");
+    setCurrentAccessCode("");
+    setNewAccessCode("");
+    setConfirmAccessCode("");
+    setMessage(newAccessCode ? "Settings saved and access code changed." : "Settings saved.");
   }
 
   if (isLoading) {
@@ -80,6 +94,49 @@ export function SettingsPanel() {
         <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-pool">Global controls</p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-ink md:text-4xl">Settings</h1>
       </div>
+
+      <section className="min-w-0 rounded border border-line bg-white p-4 shadow-sm sm:p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <KeyRound size={20} className="text-pool" />
+          <h2 className="text-xl font-bold text-ink">Teacher access code</h2>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="grid gap-2 text-sm font-semibold text-graphite sm:col-span-2">
+            Current access code
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={currentAccessCode}
+              onChange={(event) => setCurrentAccessCode(event.target.value)}
+              className="focus-ring min-h-12 min-w-0 rounded border border-line bg-paper px-3 py-3 text-ink"
+            />
+          </label>
+          <label className="grid gap-2 text-sm font-semibold text-graphite">
+            New access code
+            <input
+              type="password"
+              minLength={8}
+              maxLength={128}
+              autoComplete="new-password"
+              value={newAccessCode}
+              onChange={(event) => setNewAccessCode(event.target.value)}
+              className="focus-ring min-h-12 min-w-0 rounded border border-line bg-paper px-3 py-3 text-ink"
+            />
+          </label>
+          <label className="grid gap-2 text-sm font-semibold text-graphite">
+            Confirm new access code
+            <input
+              type="password"
+              minLength={8}
+              maxLength={128}
+              autoComplete="new-password"
+              value={confirmAccessCode}
+              onChange={(event) => setConfirmAccessCode(event.target.value)}
+              className="focus-ring min-h-12 min-w-0 rounded border border-line bg-paper px-3 py-3 text-ink"
+            />
+          </label>
+        </div>
+      </section>
 
       <section className="min-w-0 rounded border border-line bg-white p-4 shadow-sm sm:p-5">
         <h2 className="mb-4 text-xl font-bold text-ink">SMS alerts</h2>

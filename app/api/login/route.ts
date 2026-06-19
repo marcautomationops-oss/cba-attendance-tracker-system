@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
-import { AUTH_COOKIE, createTeacherSession, SESSION_MAX_AGE_SECONDS, validateAccessCode } from "@/lib/auth";
+import { AUTH_COOKIE, createTeacherSession, SESSION_MAX_AGE_SECONDS } from "@/lib/auth";
+import { validateAccessCode } from "@/lib/accessCode";
 import { cleanText, jsonError, parseJson } from "@/lib/api";
-import { clearRateLimit, clientAddress, consumeRateLimit, isSameOriginRequest } from "@/lib/security";
+import { clearDurableRateLimit, consumeDurableRateLimit } from "@/lib/rateLimit";
+import { clientAddress, isSameOriginRequest } from "@/lib/security";
 
 type LoginBody = {
   accessCode?: string;
@@ -56,10 +58,21 @@ export async function POST(request: Request) {
 
   const nextPath = safeNextPath(requestedNext, request);
   const rateLimitKey = `teacher-login:${clientAddress(request)}`;
-  const rateLimit = consumeRateLimit({ key: rateLimitKey, limit: 5, windowMs: 15 * 60 * 1000 });
+  let rateLimit;
+  try {
+    rateLimit = await consumeDurableRateLimit(rateLimitKey, 5, 15 * 60 * 1000);
+  } catch (error) {
+    return jsonError(error instanceof Error ? error.message : "Login protection is unavailable.", 503);
+  }
   if (!rateLimit.allowed) return rateLimitedResponse(request, isJson, nextPath, rateLimit.retryAfterSeconds);
 
-  if (!(await validateAccessCode(accessCode))) {
+  let accessCodeValid = false;
+  try {
+    accessCodeValid = await validateAccessCode(accessCode);
+  } catch (error) {
+    return jsonError(error instanceof Error ? error.message : "Teacher authentication is unavailable.", 503);
+  }
+  if (!accessCodeValid) {
     if (!isJson) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("error", "invalid");
@@ -71,7 +84,7 @@ export async function POST(request: Request) {
 
   const session = await createTeacherSession();
   if (!session) return jsonError("Teacher authentication is not configured.", 503);
-  clearRateLimit(rateLimitKey);
+  await clearDurableRateLimit(rateLimitKey);
 
   const response = isJson ? NextResponse.json({ ok: true, redirectTo: nextPath }) : NextResponse.redirect(new URL(nextPath, request.url), { status: 303 });
   response.cookies.set(AUTH_COOKIE, session, {

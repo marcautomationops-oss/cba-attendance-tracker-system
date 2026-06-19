@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { cleanText, jsonError, requireTeacher } from "@/lib/api";
 import { slugifySegment } from "@/lib/attendance";
 import { getAttendanceSummary, isDateOnly } from "@/lib/attendanceSummary";
@@ -45,34 +45,30 @@ export async function GET(request: Request) {
       ])
     ];
 
-    const workbook = XLSX.utils.book_new();
-    const sheet = XLSX.utils.aoa_to_sheet(rows);
-    sheet["!cols"] = [
-      { wch: 18 },
-      { wch: 34 },
-      { wch: 11 },
-      { wch: 9 },
-      { wch: 10 },
-      { wch: 11 },
-      { wch: 17 },
-      { wch: 20 }
-    ];
-    sheet["!autofilter"] = { ref: `A6:H${summary.rows.length + 6}` };
-    sheet["!freeze"] = { xSplit: 2, ySplit: 6 };
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "CBA Attendance Log";
+    const sheet = workbook.addWorksheet("Attendance Summary", { views: [{ state: "frozen", xSplit: 2, ySplit: 6 }] });
+    sheet.addRows(rows);
+    [18, 34, 11, 9, 10, 11, 17, 20].forEach((width, index) => {
+      sheet.getColumn(index + 1).width = width;
+    });
+    sheet.autoFilter = { from: "A6", to: `H${summary.rows.length + 6}` };
     for (let index = 0; index < summary.rows.length; index += 1) {
-      const averageCell = sheet[`H${index + 7}`];
-      if (averageCell?.v !== null && averageCell?.v !== undefined) averageCell.z = "0.00%";
+      sheet.getCell(index + 7, 8).numFmt = "0.00%";
     }
-    XLSX.utils.book_append_sheet(workbook, sheet, "Attendance Summary");
+    sheet.getRow(1).font = { bold: true, size: 14 };
+    sheet.getRow(6).font = { bold: true };
 
-    const sessionSheet = XLSX.utils.aoa_to_sheet([
+    const sessionSheet = workbook.addWorksheet("Included Sessions");
+    sessionSheet.addRows([
       ["Session", "Date"],
       ...summary.session_dates.map((date, index) => [index + 1, displayDate(date)])
     ]);
-    sessionSheet["!cols"] = [{ wch: 12 }, { wch: 18 }];
-    XLSX.utils.book_append_sheet(workbook, sessionSheet, "Included Sessions");
+    sessionSheet.getColumn(1).width = 12;
+    sessionSheet.getColumn(2).width = 18;
+    sessionSheet.getRow(1).font = { bold: true };
 
-    const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }) as Buffer;
+    const buffer = await workbook.xlsx.writeBuffer();
     const filename = `${slugifySegment(summary.section.name)}-${slugifySegment(summary.subject.name)}-attendance-${from}-to-${to}.xlsx`;
 
     return new Response(new Uint8Array(buffer), {

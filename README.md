@@ -36,11 +36,12 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 SUPABASE_SECRET_KEY=
 TEACHER_ACCESS_CODE=
 AUTH_SECRET=
+CRON_SECRET=
 SEMAPHORE_API_KEY=
 SEMAPHORE_SENDER_NAME=
 ```
 
-`SUPABASE_SECRET_KEY` and `AUTH_SECRET` are server-only. Do not expose them in client code.
+`SUPABASE_SECRET_KEY`, `AUTH_SECRET`, and `CRON_SECRET` are server-only. Do not expose them in client code.
 
 Generate a strong session-signing secret with:
 
@@ -48,19 +49,22 @@ Generate a strong session-signing secret with:
 node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 ```
 
+Generate `CRON_SECRET` the same way. Vercel sends it to the daily proof-retention job.
+
 Semaphore credentials are stored in environment variables.
 
 ## Supabase Setup
 
 1. Create a Supabase project.
 2. Open the Supabase SQL Editor.
-3. Run `supabase/schema.sql`.
+3. Run the complete `supabase/schema.sql`. Run it again after every production schema update; it is idempotent.
 4. Create a private Storage bucket named `attendance-photos`.
 5. Add these folders through normal uploads or let the app create paths:
    - `profile-photos/`
    - `attendance-proofs/`
 6. Copy Supabase credentials into `.env.local`.
-7. Set `TEACHER_ACCESS_CODE` and a separate random `AUTH_SECRET`.
+7. Set an initial `TEACHER_ACCESS_CODE` and a separate random `AUTH_SECRET` of at least 32 characters.
+8. After the first login, the teacher can replace the initial access code from Settings. Never share `AUTH_SECRET`.
 
 ## Storage Paths
 
@@ -91,10 +95,13 @@ Open `http://localhost:3000/login`.
    - `SUPABASE_SECRET_KEY`
    - `TEACHER_ACCESS_CODE`
    - `AUTH_SECRET`
+   - `CRON_SECRET`
    - `SEMAPHORE_API_KEY`
    - `SEMAPHORE_SENDER_NAME`
 4. Set `NEXT_PUBLIC_APP_URL` to the final Vercel URL.
 5. Deploy after `npm run build` passes locally.
+
+The production database uses row-level security with no browser policies. All data operations remain behind authenticated server routes. Login and attendance throttling are stored in Supabase so limits remain effective across Vercel instances.
 
 ## Production Checks
 

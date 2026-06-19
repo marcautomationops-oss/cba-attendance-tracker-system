@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { jsonError, requireTeacher } from "@/lib/api";
 import { slugifySegment } from "@/lib/attendance";
 import { isDateOnly } from "@/lib/attendanceSummary";
@@ -59,18 +59,23 @@ export async function GET(request: Request, context: Context) {
       ])
     ];
 
-    const workbook = XLSX.utils.book_new();
-    const sheet = XLSX.utils.aoa_to_sheet(rows);
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "CBA Attendance Log";
+    const sheet = workbook.addWorksheet("Logbook", { views: [{ state: "frozen", xSplit: 2, ySplit: 6 }] });
+    sheet.addRows(rows);
     const averageColumn = 2 + logbook.sessions.length + 4;
-    sheet["!cols"] = [{ wch: 18 }, { wch: 34 }, ...logbook.sessions.map(() => ({ wch: 16 })), { wch: 10 }, { wch: 8 }, { wch: 9 }, { wch: 10 }, { wch: 20 }];
-    sheet["!autofilter"] = { ref: `A6:${XLSX.utils.encode_col(averageColumn)}${logbook.rows.length + 6}` };
+    [18, 34, ...logbook.sessions.map(() => 16), 10, 8, 9, 10, 20].forEach((width, index) => {
+      sheet.getColumn(index + 1).width = width;
+    });
+    const averageColumnLetter = sheet.getColumn(averageColumn + 1).letter;
+    sheet.autoFilter = { from: "A6", to: `${averageColumnLetter}${logbook.rows.length + 6}` };
     for (let index = 0; index < logbook.rows.length; index += 1) {
-      const averageCell = sheet[XLSX.utils.encode_cell({ r: index + 6, c: averageColumn })];
-      if (averageCell?.v !== null && averageCell?.v !== undefined) averageCell.z = "0.00%";
+      sheet.getCell(index + 7, averageColumn + 1).numFmt = "0.00%";
     }
-    XLSX.utils.book_append_sheet(workbook, sheet, "Logbook");
+    sheet.getRow(1).font = { bold: true, size: 14 };
+    sheet.getRow(6).font = { bold: true };
 
-    const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }) as Buffer;
+    const buffer = await workbook.xlsx.writeBuffer();
     const filename = `${slugifySegment(logbook.subject.name)}-logbook-${from}-to-${to}.xlsx`;
     return new Response(new Uint8Array(buffer), {
       headers: {

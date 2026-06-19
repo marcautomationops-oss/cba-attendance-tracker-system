@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { calculateAttendanceStatus } from "@/lib/attendance";
 import { cleanText, jsonError, parseJson } from "@/lib/api";
 import { checkSmsAlertAfterAttendance } from "@/lib/sms";
+import { consumeDurableRateLimit } from "@/lib/rateLimit";
 import { ATTENDANCE_BUCKET, parseImageDataUrl, proofPhotoPath } from "@/lib/storage";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import { clientAddress, consumeRateLimit, isSameOriginRequest } from "@/lib/security";
+import { clientAddress, isSameOriginRequest } from "@/lib/security";
 import type { AttendanceSession, Student } from "@/lib/types";
 
 type Context = {
@@ -34,7 +35,12 @@ function isClosed(session: AttendanceSession) {
 
 export async function GET(request: Request, context: Context) {
   const { sessionToken } = await context.params;
-  const rateLimit = consumeRateLimit({ key: `attendance-read:${clientAddress(request)}:${sessionToken}`, limit: 120, windowMs: 10 * 60 * 1000 });
+  let rateLimit;
+  try {
+    rateLimit = await consumeDurableRateLimit(`attendance-read:${clientAddress(request)}:${sessionToken}`, 120, 10 * 60 * 1000);
+  } catch (error) {
+    return jsonError(error instanceof Error ? error.message : "Attendance protection is unavailable.", 503);
+  }
   if (!rateLimit.allowed) {
     return NextResponse.json({ error: "Too many attendance requests. Try again shortly." }, { status: 429, headers: { "retry-after": String(rateLimit.retryAfterSeconds) } });
   }
@@ -98,11 +104,16 @@ export async function POST(request: Request, context: Context) {
   const studentId = cleanText(body?.student_id);
   const studentNumber = cleanText(body?.student_number);
   const photoDataUrl = cleanText(body?.photo_data_url);
-  const rateLimit = consumeRateLimit({
-    key: `attendance-submit:${clientAddress(request)}:${sessionToken}:${studentId || "unknown"}`,
-    limit: 5,
-    windowMs: 10 * 60 * 1000
-  });
+  let rateLimit;
+  try {
+    rateLimit = await consumeDurableRateLimit(
+      `attendance-submit:${clientAddress(request)}:${sessionToken}:${studentId || "unknown"}`,
+      5,
+      10 * 60 * 1000
+    );
+  } catch (error) {
+    return jsonError(error instanceof Error ? error.message : "Attendance protection is unavailable.", 503);
+  }
   if (!rateLimit.allowed) {
     return NextResponse.json({ error: "Too many attendance attempts. Try again shortly." }, { status: 429, headers: { "retry-after": String(rateLimit.retryAfterSeconds) } });
   }
