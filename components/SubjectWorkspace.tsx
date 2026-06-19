@@ -274,6 +274,7 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [deleteSessionTarget, setDeleteSessionTarget] = useState<AttendanceSession | null>(null);
+  const [closeSessionTarget, setCloseSessionTarget] = useState<AttendanceSession | null>(null);
   const activeSession = useMemo(() => {
     if (created?.session && isSessionOpen(created.session, nowMs)) return created.session;
     return sessions.find((session) => isSessionOpen(session, nowMs)) || null;
@@ -501,8 +502,6 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
   }
 
   async function closeAttendance(session: AttendanceSession) {
-    if (!window.confirm("Close attendance now? Students without a record will be saved as absent.")) return;
-
     setClosingSessionId(session.id);
     setError("");
     setNotice("");
@@ -521,6 +520,7 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
       }
 
       setCreated(null);
+      setCloseSessionTarget(null);
       setNowMs(Date.now());
       await load();
       setNotice(`Attendance closed and saved${payload.savedAbsences ? `; ${payload.savedAbsences} student(s) marked absent` : ""}.`);
@@ -818,7 +818,7 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
             starting={starting}
             startAttendance={startAttendance}
             closingSessionId={closingSessionId}
-            closeAttendance={closeAttendance}
+            requestCloseAttendance={setCloseSessionTarget}
             students={students}
             studentForm={studentForm}
             setStudentForm={setStudentForm}
@@ -913,6 +913,15 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
           onConfirm={() => deleteSession(deleteSessionTarget.id)}
         />
       ) : null}
+
+      {closeSessionTarget ? (
+        <CloseAttendanceModal
+          session={closeSessionTarget}
+          saving={closingSessionId === closeSessionTarget.id}
+          onClose={() => setCloseSessionTarget(null)}
+          onConfirm={() => closeAttendance(closeSessionTarget)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -927,7 +936,7 @@ function CurrentTab({
   starting,
   startAttendance,
   closingSessionId,
-  closeAttendance,
+  requestCloseAttendance,
   students,
   studentForm,
   setStudentForm,
@@ -952,7 +961,7 @@ function CurrentTab({
   starting: boolean;
   startAttendance: () => void;
   closingSessionId: string | null;
-  closeAttendance: (session: AttendanceSession) => void;
+  requestCloseAttendance: (session: AttendanceSession) => void;
   students: Student[];
   studentForm: { student_number: string; full_name: string; contact_number: string; profile_photo_data_url: string };
   setStudentForm: (value: { student_number: string; full_name: string; contact_number: string; profile_photo_data_url: string }) => void;
@@ -983,7 +992,7 @@ function CurrentTab({
           <div className="grid gap-2">
             <button
               type="button"
-              onClick={() => closeAttendance(activeSession)}
+              onClick={() => requestCloseAttendance(activeSession)}
               disabled={closingSessionId === activeSession.id}
               className="focus-ring inline-flex w-full items-center justify-center gap-2 rounded bg-ledger px-4 py-3 text-sm font-bold text-white hover:bg-pool disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -1552,6 +1561,58 @@ function DeleteSessionModal({
           >
             {saving ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
             Delete session
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function CloseAttendanceModal({
+  session,
+  saving,
+  onClose,
+  onConfirm
+}: {
+  session: AttendanceSession;
+  saving: boolean;
+  onClose: () => void;
+  onConfirm: () => Promise<void>;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/35 px-3 py-4 sm:px-4 sm:py-8">
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="close-attendance-title"
+        className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded border border-line bg-white p-4 shadow-soft sm:p-5"
+      >
+        <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-pool">Close attendance</p>
+        <h3 id="close-attendance-title" className="mt-2 text-2xl font-bold text-ink">Save this session?</h3>
+        <p className="mt-3 text-sm font-semibold leading-6 text-graphite">
+          Attendance submissions will stop immediately. Students still marked pending will be saved as absent, and the completed record will move to History.
+        </p>
+        <div className="mt-4 rounded border border-line bg-paper px-3 py-3">
+          <p className="font-mono text-xs font-bold uppercase tracking-[0.16em] text-graphite">Session started</p>
+          <p className="mt-1 font-bold text-ink">{displayDateTime(session.start_time)}</p>
+        </div>
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="focus-ring min-h-11 rounded border border-line bg-white px-4 py-3 text-sm font-bold text-ink hover:border-pool disabled:opacity-60"
+          >
+            Keep open
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={saving}
+            className="focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded bg-ledger px-4 py-3 text-sm font-bold text-white hover:bg-pool disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+            {saving ? "Closing and saving..." : "Close and save"}
           </button>
         </div>
       </section>
