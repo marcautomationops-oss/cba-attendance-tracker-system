@@ -33,7 +33,7 @@ export function DeleteControlModal({ entityType, name, openHref, deleting, onClo
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-[#061426]/42 px-3 py-4 sm:px-4 sm:py-8">
-      <section className="cockpit-card max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto bg-[#f7fbff] p-5 shadow-[0_24px_70px_rgba(6,20,38,0.22)] sm:p-6">
+      <section className="cockpit-card max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-x-hidden overflow-y-auto bg-[#f7fbff] p-5 shadow-[0_24px_70px_rgba(6,20,38,0.22)] sm:p-6">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#335f97]">{entityType} controls</p>
@@ -62,9 +62,10 @@ export function DeleteControlModal({ entityType, name, openHref, deleting, onClo
               Type DELETE to confirm
               <input
                 value={confirmation}
-                onChange={(event) => setConfirmation(event.target.value)}
+                onChange={(event) => setConfirmation(event.target.value.toUpperCase())}
                 disabled={deleting}
                 autoComplete="off"
+                maxLength={6}
                 className="focus-ring min-h-12 border border-red-300 bg-white px-3 font-mono text-base font-bold uppercase text-[#071529] disabled:bg-red-100"
                 placeholder="DELETE"
               />
@@ -72,7 +73,7 @@ export function DeleteControlModal({ entityType, name, openHref, deleting, onClo
             <button
               type="button"
               onClick={onDelete}
-              disabled={deleting || confirmation !== "DELETE"}
+              disabled={deleting || confirmation.trim() !== "DELETE"}
               className="focus-ring mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 bg-[#c81e1e] px-4 py-3 text-sm font-bold uppercase tracking-[0.06em] text-white disabled:opacity-60"
             >
               <Trash2 size={17} />
