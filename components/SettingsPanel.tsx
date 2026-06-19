@@ -6,19 +6,11 @@ import { SettingsPanelSkeleton } from "@/components/LoadingSkeletons";
 import { PasswordInput } from "@/components/PasswordInput";
 
 type Settings = {
-  default_late_limit: number;
-  default_absent_limit: number;
-  default_automatic_sms: boolean;
   proof_retention_days: number;
-  storage_warning_mb: number;
 };
 
 const fallback: Settings = {
-  default_late_limit: 3,
-  default_absent_limit: 2,
-  default_automatic_sms: false,
-  proof_retention_days: 180,
-  storage_warning_mb: 750
+  proof_retention_days: 180
 };
 
 export function SettingsPanel() {
@@ -137,60 +129,16 @@ export function SettingsPanel() {
       </section>
 
       <section className="min-w-0 rounded border border-line bg-white p-4 shadow-sm sm:p-5">
-        <h2 className="mb-4 text-xl font-bold text-ink">SMS alerts</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="grid gap-2 text-sm font-semibold text-graphite">
-            Default late limit
-            <input
-              type="number"
-              min={1}
-              value={settings.default_late_limit}
-              onChange={(event) => setSettings({ ...settings, default_late_limit: Number(event.target.value) })}
-              className="focus-ring min-h-12 min-w-0 rounded border border-line bg-paper px-3 py-3 text-ink"
-            />
-          </label>
-          <label className="grid gap-2 text-sm font-semibold text-graphite">
-            Default absent limit
-            <input
-              type="number"
-              min={1}
-              value={settings.default_absent_limit}
-              onChange={(event) => setSettings({ ...settings, default_absent_limit: Number(event.target.value) })}
-              className="focus-ring min-h-12 min-w-0 rounded border border-line bg-paper px-3 py-3 text-ink"
-            />
-          </label>
-          <label className="flex min-h-12 items-center justify-between gap-3 rounded border border-line bg-paper px-3 py-3 text-sm font-semibold text-graphite sm:col-span-2">
-            Default automatic SMS
-            <input
-              type="checkbox"
-              checked={settings.default_automatic_sms}
-              onChange={(event) => setSettings({ ...settings, default_automatic_sms: event.target.checked })}
-              className="h-5 w-5"
-            />
-          </label>
-        </div>
-      </section>
-
-      <section className="min-w-0 rounded border border-line bg-white p-4 shadow-sm sm:p-5">
-        <h2 className="mb-4 text-xl font-bold text-ink">Storage</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="grid gap-2 text-sm font-semibold text-graphite">
-            Proof retention days
+        <h2 className="mb-4 text-xl font-bold text-ink">Proof photos</h2>
+        <div className="grid gap-4">
+          <label className="grid max-w-sm gap-2 text-sm font-semibold text-graphite">
+            Delete proof photos after (days)
             <input
               type="number"
               min={30}
+              max={3650}
               value={settings.proof_retention_days}
               onChange={(event) => setSettings({ ...settings, proof_retention_days: Number(event.target.value) })}
-              className="focus-ring min-h-12 min-w-0 rounded border border-line bg-paper px-3 py-3 text-ink"
-            />
-          </label>
-          <label className="grid gap-2 text-sm font-semibold text-graphite">
-            Storage warning MB
-            <input
-              type="number"
-              min={100}
-              value={settings.storage_warning_mb}
-              onChange={(event) => setSettings({ ...settings, storage_warning_mb: Number(event.target.value) })}
               className="focus-ring min-h-12 min-w-0 rounded border border-line bg-paper px-3 py-3 text-ink"
             />
           </label>

@@ -4,14 +4,14 @@ import { jsonError, parseJson, requireTeacher } from "@/lib/api";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 type SettingsBody = {
-  default_late_limit?: number;
-  default_absent_limit?: number;
-  default_automatic_sms?: boolean;
   proof_retention_days?: number;
-  storage_warning_mb?: number;
   current_access_code?: string;
   new_access_code?: string;
 };
+
+function teacherSettings(data: { proof_retention_days?: number | null }) {
+  return { proof_retention_days: Number(data.proof_retention_days || 180) };
+}
 
 export async function GET(request: Request) {
   if (!(await requireTeacher(request))) return jsonError("Teacher login required.", 401);
@@ -21,11 +21,7 @@ export async function GET(request: Request) {
   const { data, error } = await supabase.from("app_settings").select("*").eq("id", 1).single();
 
   if (error) return jsonError(error.message, 500);
-  const { semaphore_api_key, semaphore_sender_name, access_code_hash, ...safeSettings } = data;
-  void semaphore_api_key;
-  void semaphore_sender_name;
-  void access_code_hash;
-  return NextResponse.json({ settings: safeSettings });
+  return NextResponse.json({ settings: teacherSettings(data) });
 }
 
 export async function PATCH(request: Request) {
@@ -43,21 +39,14 @@ export async function PATCH(request: Request) {
   }
 
   const supabase = getSupabaseAdmin();
+  const retentionDays = Math.min(3650, Math.max(30, Number(body.proof_retention_days || 180)));
   const nextSettings = {
     id: 1,
-    default_late_limit: Number(body.default_late_limit || 3),
-    default_absent_limit: Number(body.default_absent_limit || 2),
-    default_automatic_sms: Boolean(body.default_automatic_sms),
-    proof_retention_days: Number(body.proof_retention_days || 180),
-    storage_warning_mb: Number(body.storage_warning_mb || 750),
+    proof_retention_days: retentionDays,
     updated_at: new Date().toISOString()
   };
 
   const { data, error } = await supabase.from("app_settings").upsert(nextSettings, { onConflict: "id" }).select("*").single();
   if (error) return jsonError(error.message, 500);
-  const { semaphore_api_key, semaphore_sender_name, access_code_hash, ...safeSettings } = data;
-  void semaphore_api_key;
-  void semaphore_sender_name;
-  void access_code_hash;
-  return NextResponse.json({ settings: safeSettings });
+  return NextResponse.json({ settings: teacherSettings(data) });
 }
