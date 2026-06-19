@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { jsonError, requireTeacher } from "@/lib/api";
 import { finalizeClosedSessionsAbsences } from "@/lib/finalizeAttendance";
+import { defaultAbsentMilestones, defaultLateMilestones, normalizeMilestones } from "@/lib/sms";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import type { AttendanceRecord, AttendanceSession, AttendanceStatus, Student } from "@/lib/types";
+import type { AppSettings, AttendanceRecord, AttendanceSession, AttendanceStatus, Student, SubjectAlertSettings } from "@/lib/types";
 
 type Context = {
   params: Promise<{ id: string }>;
@@ -13,7 +14,14 @@ type Trend = "Improving" | "Stable" | "Getting Worse" | "No Recent Attendance";
 type Action = "No Action" | "Monitor" | "Send SMS" | "Follow Up";
 
 function dayKey(value: string) {
-  return new Date(value).toISOString().slice(0, 10);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(new Date(value));
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value || "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
 function recordTime(record: AttendanceRecord) {
@@ -63,14 +71,30 @@ export async function GET(request: Request, context: Context) {
   const { id } = await context.params;
   const supabase = getSupabaseAdmin();
 
-  const [{ data: subject }, { data: links }, { data: sessions }, { data: alerts }] = await Promise.all([
+  const [subjectResult, linksResult, sessionsResult, alertsResult, subjectSettingsResult, appSettingsResult] = await Promise.all([
     supabase.from("subjects").select("id,name,section_id").eq("id", id).single(),
     supabase.from("subject_students").select("student_id").eq("subject_id", id),
     supabase.from("attendance_sessions").select("*").eq("subject_id", id).order("start_time", { ascending: false }),
-    supabase.from("sms_alerts").select("*").eq("subject_id", id).order("created_at", { ascending: false })
+    supabase.from("sms_alerts").select("*").eq("subject_id", id).order("created_at", { ascending: false }),
+    supabase.from("subject_alert_settings").select("*").eq("subject_id", id).maybeSingle(),
+    supabase.from("app_settings").select("*").eq("id", 1).maybeSingle()
   ]);
 
+  const { data: subject, error: subjectError } = subjectResult;
+  if (subjectError) return jsonError(subjectError.message, 500);
   if (!subject) return jsonError("Subject was not found.", 404);
+  if (linksResult.error) return jsonError(linksResult.error.message, 500);
+  if (sessionsResult.error) return jsonError(sessionsResult.error.message, 500);
+  if (alertsResult.error) return jsonError(alertsResult.error.message, 500);
+
+  const links = linksResult.data;
+  const sessions = sessionsResult.data;
+  const alerts = alertsResult.data;
+  const subjectSettings = subjectSettingsResult.data as SubjectAlertSettings | null;
+  const appSettings = appSettingsResult.data as AppSettings | null;
+  const lateMilestones = normalizeMilestones(subjectSettings?.late_milestones, [appSettings?.default_late_limit || defaultLateMilestones[0], ...defaultLateMilestones]);
+  const absentMilestones = normalizeMilestones(subjectSettings?.absent_milestones, [appSettings?.default_absent_limit || defaultAbsentMilestones[0], ...defaultAbsentMilestones]);
+  const alertPeriodStart = new Date(subjectSettings?.alert_period_start || 0).getTime();
 
   const studentIds = (links || []).map((link) => link.student_id);
   let students: Student[] = [];
@@ -92,6 +116,7 @@ export async function GET(request: Request, context: Context) {
     .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
   await finalizeClosedSessionsAbsences(closedSessions, { sendSmsAlerts: true });
   const closedSessionIds = new Set(closedSessions.map((session) => session.id));
+  const sessionById = new Map(typedSessions.map((session) => [session.id, session]));
   const sessionIds = typedSessions.map((session) => session.id);
   let records: AttendanceRecord[] = [];
   if (sessionIds.length) {
@@ -100,7 +125,7 @@ export async function GET(request: Request, context: Context) {
     records = (data || []) as AttendanceRecord[];
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = dayKey(new Date().toISOString());
   const todaySessionIds = new Set(typedSessions.filter((session) => dayKey(session.start_time) === today).map((session) => session.id));
   const todayClosedSessionIds = new Set(closedSessions.filter((session) => dayKey(session.start_time) === today).map((session) => session.id));
   const todayRecords = records.filter((record) => todaySessionIds.has(record.session_id));
@@ -118,8 +143,9 @@ export async function GET(request: Request, context: Context) {
         )
       : 0);
 
+  const closedRecords = records.filter((record) => closedSessionIds.has(record.session_id));
   const recordsByStudent = new Map<string, AttendanceRecord[]>();
-  for (const record of records) {
+  for (const record of closedRecords) {
     const list = recordsByStudent.get(record.student_id) || [];
     list.push(record);
     recordsByStudent.set(record.student_id, list);
@@ -140,7 +166,6 @@ export async function GET(request: Request, context: Context) {
   const attendance_over_time = closedSessions.slice(-8).map((session) => {
     const sessionRecords = recordsByClosedSession.get(session.id) || [];
     const submittedIds = new Set(sessionRecords.map((record) => record.student_id));
-    const sessionDate = new Date(session.start_time);
     const on_time = sessionRecords.filter((record) => record.status === "on_time").length;
     const late = sessionRecords.filter((record) => record.status === "late").length;
     const explicitAbsent = sessionRecords.filter((record) => record.status === "absent").length;
@@ -149,8 +174,7 @@ export async function GET(request: Request, context: Context) {
 
     return {
       session_id: session.id,
-      label: sessionDate.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      time_label: sessionDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+      start_time: session.start_time,
       on_time,
       late,
       absent,
@@ -169,14 +193,20 @@ export async function GET(request: Request, context: Context) {
     const submittedClosedSessionIds = new Set(list.filter((record) => closedSessionIds.has(record.session_id)).map((record) => record.session_id));
     const missingClosed = closedSessions.filter((session) => !submittedClosedSessionIds.has(session.id)).length;
     const absent = explicitAbsent + missingClosed;
+    const alertPeriodRecords = list.filter((record) => {
+      const session = sessionById.get(record.session_id);
+      return session && new Date(session.start_time).getTime() >= alertPeriodStart;
+    });
+    const alertLate = alertPeriodRecords.filter((record) => record.status === "late").length;
+    const alertAbsent = alertPeriodRecords.filter((record) => record.status === "absent").length;
     const attended = onTime + late + excused;
     const attendancePercentage = closedSessions.length ? Math.round((attended / closedSessions.length) * 100) : 0;
     const lastStatus = (list[0]?.status || (typedSessions.length ? "absent" : "absent")) as AttendanceStatus;
     const risk = riskForStudent(attendancePercentage, absent, late, closedSessions.length > 0);
     const action = actionForRisk(risk);
-    const sms_alerts = {
-      late: alertStatusByMilestone.get(`${student.id}:late:${late}`) || "Not sent",
-      absent: alertStatusByMilestone.get(`${student.id}:absent:${absent}`) || "Not sent"
+    const smsAlerts = {
+      late: alertStatusByMilestone.get(`${student.id}:late:${alertLate}`) || "Not sent",
+      absent: alertStatusByMilestone.get(`${student.id}:absent:${alertAbsent}`) || "Not sent"
     };
     const trend = trendForStudent(closedSessions, recordBySession);
     const recent_sessions = closedSessions.slice(-8).reverse().map((session) => {
@@ -185,7 +215,6 @@ export async function GET(request: Request, context: Context) {
       return {
         session_id: session.id,
         date: session.start_time,
-        label: new Date(session.start_time).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
         status
       };
     });
@@ -199,10 +228,12 @@ export async function GET(request: Request, context: Context) {
       on_time_count: onTime,
       late_count: late,
       absent_count: absent,
+      alert_late_count: alertLate,
+      alert_absent_count: alertAbsent,
       excused_count: excused,
       last_status: lastStatus,
-      sms_alert_status: sms_alerts.late === "Sent" || sms_alerts.absent === "Sent" ? "Sent" : "Not sent",
-      sms_alerts,
+      sms_alert_status: smsAlerts.late === "Sent" || smsAlerts.absent === "Sent" ? "Sent" : "Not sent",
+      sms_alerts: smsAlerts,
       trend,
       risk,
       ...action,
@@ -223,7 +254,15 @@ export async function GET(request: Request, context: Context) {
   const totalLate = individual.reduce((sum, student) => sum + student.late_count, 0);
   const totalAbsent = individual.reduce((sum, student) => sum + student.absent_count, 0);
   const studentsAtRisk = individual.filter((student) => student.risk !== "Good").length;
-  const smsAlerts = individual.filter((student) => student.action === "Send SMS").length;
+  const firstLateMilestone = Math.min(...lateMilestones);
+  const firstAbsentMilestone = Math.min(...absentMilestones);
+  const alertCandidates = individual.filter(
+    (student) => student.alert_absent_count >= firstAbsentMilestone || student.alert_late_count >= firstLateMilestone
+  );
+  const studentsNeedingSms = alertCandidates.filter((student) => {
+    if (student.alert_absent_count >= firstAbsentMilestone) return student.sms_alerts.absent !== "Sent";
+    return student.sms_alerts.late !== "Sent";
+  });
   const leaders = {
     most_present: [...individual]
       .sort((a, b) => b.on_time_count + b.late_count + b.excused_count - (a.on_time_count + a.late_count + a.excused_count))
@@ -266,12 +305,13 @@ export async function GET(request: Request, context: Context) {
       students_at_risk: studentsAtRisk,
       late_count: totalLate,
       absent_count: totalAbsent,
-      sms_alerts: smsAlerts
+      sms_alerts: studentsNeedingSms.length,
+      sms_reachable: studentsNeedingSms.filter((student) => Boolean(student.contact_number)).length
     },
     attendance_over_time,
     risk_levels,
     leaders,
     individual,
-    needs_attention: individual.filter((student) => student.risk === "At Risk" || student.risk === "Critical")
+    needs_attention: alertCandidates
   });
 }

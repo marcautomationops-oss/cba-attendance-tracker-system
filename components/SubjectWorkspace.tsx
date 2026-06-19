@@ -27,7 +27,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ButtonHTMLAttributes, type ComponentType, type FormEvent, type ReactNode } from "react";
 import { AttendanceRecordRows } from "@/components/AttendanceRecordRows";
 import { LiveAttendancePanel } from "@/components/LiveAttendancePanel";
-import { AlertsSkeleton, AnalyticsSkeleton, AttendanceRowsSkeleton } from "@/components/LoadingSkeletons";
+import { AlertsSkeleton, AnalyticsSkeleton, AttendanceRowsSkeleton, SkeletonBlock } from "@/components/LoadingSkeletons";
 import { QRCodeDisplay } from "@/components/QRCodeDisplay";
 import { SubjectWorkspaceSkeleton } from "@/components/SubjectWorkspaceSkeleton";
 import { displayDateTime } from "@/lib/attendance";
@@ -75,7 +75,6 @@ type ActionLabel = "No Action" | "Monitor" | "Send SMS" | "Follow Up";
 type RecentSessionAnalytics = {
   session_id: string;
   date: string;
-  label: string;
   status: AttendanceStatus;
 };
 
@@ -88,6 +87,8 @@ type IndividualAnalytics = {
   on_time_count: number;
   late_count: number;
   absent_count: number;
+  alert_late_count: number;
+  alert_absent_count: number;
   excused_count: number;
   last_status: AttendanceStatus;
   sms_alert_status: string;
@@ -104,8 +105,7 @@ type IndividualAnalytics = {
 
 type AttendanceTrendRow = {
   session_id: string;
-  label: string;
-  time_label: string;
+  start_time: string;
   on_time: number;
   late: number;
   absent: number;
@@ -129,6 +129,7 @@ type AnalyticsPayload = {
     late_count: number;
     absent_count: number;
     sms_alerts: number;
+    sms_reachable: number;
   };
   attendance_over_time: AttendanceTrendRow[];
   risk_levels: Record<RiskLevel, number>;
@@ -264,6 +265,8 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
   const [updatingStudentId, setUpdatingStudentId] = useState<string | null>(null);
   const [removingStudentId, setRemovingStudentId] = useState<string | null>(null);
   const [sessionSummaries, setSessionSummaries] = useState<Record<string, SessionSummary>>({});
+  const [sessionSummariesLoading, setSessionSummariesLoading] = useState(false);
+  const [sessionSummaryErrors, setSessionSummaryErrors] = useState<Set<string>>(new Set());
   const [selectedSessionRecords, setSelectedSessionRecords] = useState<SessionRecords | null>(null);
   const [isLoadingSelectedSession, setIsLoadingSelectedSession] = useState(false);
   const [analytics, setAnalytics] = useState<AnalyticsPayload | null>(null);
@@ -281,6 +284,7 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
   }, [created, nowMs, sessions]);
   const historySessions = useMemo(() => sessions.filter((session) => !isSessionOpen(session, nowMs)), [nowMs, sessions]);
   const historySessionKey = useMemo(() => historySessions.map((session) => session.id).join("|"), [historySessions]);
+  const historySessionIds = useMemo(() => (historySessionKey ? historySessionKey.split("|") : []), [historySessionKey]);
   const activeAttendanceLink = activeSession
     ? created?.session.id === activeSession.id
       ? created.attendanceLink
@@ -342,6 +346,7 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
   }, [sectionId, subjectId]);
 
   const loadAnalytics = useCallback(async () => {
+    setAnalyticsLoaded(false);
     try {
       const response = await fetch(`/api/subjects/${subjectId}/analytics`, { cache: "no-store" });
       const payload = await response.json();
@@ -416,35 +421,49 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
   }, [loadAlerts, loadAnalytics, tab]);
 
   useEffect(() => {
-    if (tab !== "history" || !historySessions.length || selectedSessionId) return;
+    if (tab !== "history" || !historySessionIds.length || selectedSessionId) return;
     let cancelled = false;
 
     async function loadSummaries() {
+      setSessionSummariesLoading(true);
+      setSessionSummaryErrors(new Set());
       const entries = await Promise.all(
-        historySessions.slice(0, 20).map(async (session) => {
-          const response = await fetch(`/api/sessions/${session.id}/records`, { cache: "no-store" });
-          const payload = await response.json();
+        historySessionIds.map(async (sessionId) => {
+          const response = await fetch(`/api/sessions/${sessionId}/records`, { cache: "no-store" });
+          const payload = await readJson(response, "Session records API");
+          if (!response.ok) return { sessionId, summary: null };
           const counts = payload.counts || {};
-          return [
-            session.id,
-            {
-              sessionId: session.id,
+          return {
+            sessionId,
+            summary: {
+              sessionId,
               on_time: counts.on_time || 0,
               late: counts.late || 0,
               absent: counts.absent || 0,
               excused: (counts.excused || 0) + (counts.sick || 0) + (counts.leave || 0)
             }
-          ] as const;
+          };
         })
       );
-      if (!cancelled) setSessionSummaries(Object.fromEntries(entries));
+      if (!cancelled) {
+        setSessionSummaries(
+          Object.fromEntries(entries.filter((entry) => entry.summary).map((entry) => [entry.sessionId, entry.summary as SessionSummary]))
+        );
+        setSessionSummaryErrors(new Set(entries.filter((entry) => !entry.summary).map((entry) => entry.sessionId)));
+        setSessionSummariesLoading(false);
+      }
     }
 
-    loadSummaries();
+    loadSummaries().catch(() => {
+      if (!cancelled) {
+        setSessionSummaryErrors(new Set(historySessionIds));
+        setSessionSummariesLoading(false);
+      }
+    });
     return () => {
       cancelled = true;
     };
-  }, [historySessionKey, historySessions, selectedSessionId, tab]);
+  }, [historySessionIds, selectedSessionId, tab]);
 
   useEffect(() => {
     if (tab !== "history" || !selectedSessionId || !sessions.length) return;
@@ -840,6 +859,8 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
           <HistoryTab
             sessions={historySessions}
             summaries={sessionSummaries}
+            summariesLoading={sessionSummariesLoading}
+            summaryErrors={sessionSummaryErrors}
             selectedSession={selectedSession}
             selectedSessionId={selectedSessionId}
             records={selectedSessionRecords}
@@ -1215,6 +1236,8 @@ function CurrentTab({
 function HistoryTab({
   sessions,
   summaries,
+  summariesLoading,
+  summaryErrors,
   selectedSession,
   selectedSessionId,
   records,
@@ -1226,6 +1249,8 @@ function HistoryTab({
 }: {
   sessions: AttendanceSession[];
   summaries: Record<string, SessionSummary>;
+  summariesLoading: boolean;
+  summaryErrors: Set<string>;
   selectedSession: AttendanceSession | null;
   selectedSessionId: string | null;
   records: SessionRecords | null;
@@ -1303,12 +1328,20 @@ function HistoryTab({
                 <p className="break-words font-bold text-ink">{displayDateTime(session.start_time)}</p>
                 <p className="mt-1 font-mono text-xs font-bold uppercase tracking-[0.16em] text-graphite">Session record</p>
               </div>
-              <div className="flex flex-wrap gap-2 text-xs font-bold text-graphite">
-                <span>On time {summary?.on_time ?? "--"}</span>
-                <span>Late {summary?.late ?? "--"}</span>
-                <span>Absent {summary?.absent ?? "--"}</span>
-                <span>Excused {summary?.excused ?? "--"}</span>
-              </div>
+              {summary ? (
+                <div className="flex flex-wrap gap-2 text-xs font-bold text-graphite">
+                  <span>On time {summary.on_time}</span>
+                  <span>Late {summary.late}</span>
+                  <span>Absent {summary.absent}</span>
+                  <span>Excused {summary.excused}</span>
+                </div>
+              ) : summaryErrors.has(session.id) ? (
+                <span className="text-xs font-bold text-red-700">Summary unavailable</span>
+              ) : summariesLoading ? (
+                <div className="flex items-center gap-2" role="status" aria-label="Loading session summary">
+                  {Array.from({ length: 4 }, (_, index) => <SkeletonBlock key={index} className="h-4 w-16" />)}
+                </div>
+              ) : null}
             </button>
           );
         })}
@@ -1669,14 +1702,14 @@ function AnalyticsPanel({ analytics, loaded }: { analytics: AnalyticsPayload | n
 
   if (!analytics) return <div className="rounded border border-signal bg-red-50 p-4 font-semibold text-signal">Analytics could not load.</div>;
 
-  const summary = analytics.summary || { class_attendance: 0, total_sessions: 0, students_at_risk: 0, late_count: 0, absent_count: 0, sms_alerts: 0 };
+  const summary = analytics.summary || { class_attendance: 0, total_sessions: 0, students_at_risk: 0, late_count: 0, absent_count: 0, sms_alerts: 0, sms_reachable: 0 };
   const topCards = [
     { label: "Class Attendance", subtext: "Students who attended closed sessions.", value: `${summary.class_attendance}%`, accent: "bg-green-500" },
     { label: "Total Sessions", subtext: "Closed attendance sessions.", value: summary.total_sessions, accent: "bg-blue-500" },
     { label: "Students at Risk", subtext: "Students who may need attention.", value: summary.students_at_risk, accent: "bg-red-500" },
     { label: "Total Late", subtext: "Late records in closed sessions.", value: summary.late_count, accent: "bg-amber-500" },
     { label: "Total Absent", subtext: "Missed closed sessions.", value: summary.absent_count, accent: "bg-red-500" },
-    { label: "SMS Needed", subtext: "Students who need a message.", value: summary.sms_alerts, accent: "bg-blue-500" }
+    { label: "SMS Needed", subtext: `${summary.sms_reachable} can receive a message now.`, value: summary.sms_alerts, accent: "bg-blue-500" }
   ];
   const leaderGroups = [
     { title: "Most Present", subtext: "Students with the best attendance.", rows: analytics.leaders?.most_present || [] },
@@ -1761,8 +1794,8 @@ function AnalyticsPanel({ analytics, loaded }: { analytics: AnalyticsPayload | n
               {(analytics.attendance_over_time || []).map((session) => (
                 <div key={session.session_id} className="grid gap-2 md:grid-cols-[72px_1fr] md:items-center">
                   <div className="font-mono text-xs font-bold uppercase text-graphite">
-                    <p>{session.label}</p>
-                    <p className="mt-1 text-[11px] text-graphite/70">{session.time_label}</p>
+                    <p>{new Date(session.start_time).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
+                    <p className="mt-1 text-[11px] text-graphite/70">{new Date(session.start_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</p>
                   </div>
                   <div>
                     <div className="flex h-7 overflow-hidden rounded border border-line bg-paper">
@@ -1925,7 +1958,7 @@ function AnalyticsPanel({ analytics, loaded }: { analytics: AnalyticsPayload | n
                   <div key={session.session_id} className="flex items-center justify-between rounded border border-line bg-paper px-3 py-3">
                     <div className="flex items-center gap-3">
                       <span className={`h-3 w-3 rounded-full ${statusTone[session.status].dot}`} />
-                      <span className="font-bold text-ink">{session.label}</span>
+                      <span className="font-bold text-ink">{new Date(session.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
                     </div>
                     <span className="text-sm font-bold text-graphite">{statusTone[session.status].label}</span>
                   </div>
@@ -1944,8 +1977,8 @@ function AnalyticsPanel({ analytics, loaded }: { analytics: AnalyticsPayload | n
 function triggerForStudent(student: IndividualAnalytics, alertSettings: AlertSettings | null): AlertTrigger | null {
   const lateMilestones = alertSettings?.late_milestones?.length ? alertSettings.late_milestones : [3, 5, 7];
   const absentMilestones = alertSettings?.absent_milestones?.length ? alertSettings.absent_milestones : [2, 4, 6];
-  if (student.absent_count >= Math.min(...absentMilestones)) return "absent";
-  if (student.late_count >= Math.min(...lateMilestones)) return "late";
+  if (student.alert_absent_count >= Math.min(...absentMilestones)) return "absent";
+  if (student.alert_late_count >= Math.min(...lateMilestones)) return "late";
   return null;
 }
 
@@ -1969,8 +2002,8 @@ function renderSmsTemplate(template: string, student: IndividualAnalytics, trigg
   return template
     .replaceAll("{student}", student.full_name)
     .replaceAll("{subject}", subjectName)
-    .replaceAll("{late_count}", String(student.late_count))
-    .replaceAll("{absent_count}", String(student.absent_count))
+    .replaceAll("{late_count}", String(student.alert_late_count))
+    .replaceAll("{absent_count}", String(student.alert_absent_count))
     .replaceAll("{reason}", triggerType === "late" ? "late records" : "absences");
 }
 
@@ -2099,7 +2132,7 @@ function AlertsPanel({
               const status = triggerType ? student.sms_alerts?.[triggerType] || "Not sent" : "No threshold";
               const canSend = Boolean(triggerType && student.contact_number);
               const milestones = triggerType === "late" ? alertSettings?.late_milestones || [3, 5, 7] : alertSettings?.absent_milestones || [2, 4, 6];
-              const count = triggerType === "late" ? student.late_count : student.absent_count;
+              const count = triggerType === "late" ? student.alert_late_count : student.alert_absent_count;
               const automaticNow = triggerType ? milestones.includes(count) : false;
               const nextAuto = triggerType ? nextMilestone(count + 1, milestones) : null;
               return (
@@ -2107,7 +2140,7 @@ function AlertsPanel({
                   <div>
                     <p className="font-bold text-ink">{student.full_name}</p>
                     <p className="font-mono text-xs text-graphite">
-                      {student.student_number} / Late {student.late_count} / Absent {student.absent_count}
+                      {student.student_number} / Period late {student.alert_late_count} / Period absent {student.alert_absent_count}
                     </p>
                     {triggerType ? (
                       <p className="mt-1 text-xs font-bold text-graphite">
