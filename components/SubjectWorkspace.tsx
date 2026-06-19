@@ -27,6 +27,7 @@ import { useCallback, useEffect, useMemo, useState, type ButtonHTMLAttributes, t
 import { AttendanceRecordRows } from "@/components/AttendanceRecordRows";
 import { LiveAttendancePanel } from "@/components/LiveAttendancePanel";
 import { QRCodeDisplay } from "@/components/QRCodeDisplay";
+import { SubjectWorkspaceSkeleton } from "@/components/SubjectWorkspaceSkeleton";
 import { displayDateTime } from "@/lib/attendance";
 import type { AttendanceSession, AttendanceStatus, DashboardRecord, Section, Student, Subject } from "@/lib/types";
 
@@ -246,7 +247,7 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
   const [studentForm, setStudentForm] = useState({ student_number: "", full_name: "", contact_number: "", profile_photo_data_url: "" });
   const [lateAfterMinutes, setLateAfterMinutes] = useState(15);
   const [closeAfterMinutes, setCloseAfterMinutes] = useState(60);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [starting, setStarting] = useState(false);
   const [savingStudent, setSavingStudent] = useState(false);
   const [error, setError] = useState("");
@@ -304,31 +305,36 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
     }
   }, [searchParams]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (showSkeleton = false) => {
+    if (showSkeleton) setIsLoading(true);
     setError("");
 
-    const [sectionResponse, subjectResponse, studentsResponse] = await Promise.all([
-      fetch(`/api/sections/${sectionId}`, { cache: "no-store" }),
-      fetch(`/api/subjects/${subjectId}`, { cache: "no-store" }),
-      fetch(`/api/subjects/${subjectId}/students`, { cache: "no-store" })
-    ]);
+    try {
+      const [sectionResponse, subjectResponse, studentsResponse] = await Promise.all([
+        fetch(`/api/sections/${sectionId}`, { cache: "no-store" }),
+        fetch(`/api/subjects/${subjectId}`, { cache: "no-store" }),
+        fetch(`/api/subjects/${subjectId}/students`, { cache: "no-store" })
+      ]);
 
-    const [sectionPayload, subjectPayload, studentsPayload] = await Promise.all([
-      readJson(sectionResponse, "Sections API"),
-      readJson(subjectResponse, "Subject API"),
-      readJson(studentsResponse, "Students API")
-    ]);
-    setLoading(false);
+      const [sectionPayload, subjectPayload, studentsPayload] = await Promise.all([
+        readJson(sectionResponse, "Sections API"),
+        readJson(subjectResponse, "Subject API"),
+        readJson(studentsResponse, "Students API")
+      ]);
 
-    if (!sectionResponse.ok) return setError(sectionPayload.error || "Section could not load.");
-    if (!subjectResponse.ok) return setError(subjectPayload.error || "Subject could not load.");
-    if (!studentsResponse.ok) return setError(studentsPayload.error || "Students could not load.");
+      if (!sectionResponse.ok) return setError(sectionPayload.error || "Section could not load.");
+      if (!subjectResponse.ok) return setError(subjectPayload.error || "Subject could not load.");
+      if (!studentsResponse.ok) return setError(studentsPayload.error || "Students could not load.");
 
-    setSection(sectionPayload.section);
-    setSubject(subjectPayload.subject);
-    setSessions(subjectPayload.sessions || []);
-    setStudents(studentsPayload.students || []);
+      setSection(sectionPayload.section);
+      setSubject(subjectPayload.subject);
+      setSessions(subjectPayload.sessions || []);
+      setStudents(studentsPayload.students || []);
+    } catch {
+      setError("Subject could not load. Check the server and Supabase connection.");
+    } finally {
+      if (showSkeleton) setIsLoading(false);
+    }
   }, [sectionId, subjectId]);
 
   const loadAnalytics = useCallback(async () => {
@@ -363,7 +369,7 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
   }, [selectedSessionId]);
 
   useEffect(() => {
-    load();
+    load(true);
   }, [load]);
 
   useEffect(() => {
@@ -676,8 +682,8 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
     return analytics.today.present + analytics.today.late + analytics.today.absent;
   }, [analytics]);
 
-  if (loading) {
-    return <div className="rounded border border-line bg-white p-5 shadow-soft">Loading subject</div>;
+  if (isLoading) {
+    return <SubjectWorkspaceSkeleton />;
   }
 
   if (!section || !subject) {
