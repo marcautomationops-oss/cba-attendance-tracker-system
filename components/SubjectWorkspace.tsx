@@ -16,6 +16,7 @@ import {
   Play,
   Plus,
   Radio,
+  Save,
   Trash2,
   Upload,
   UserPlus,
@@ -250,6 +251,7 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
   const [closeAfterMinutes, setCloseAfterMinutes] = useState(60);
   const [isLoading, setIsLoading] = useState(true);
   const [starting, setStarting] = useState(false);
+  const [closingSessionId, setClosingSessionId] = useState<string | null>(null);
   const [savingStudent, setSavingStudent] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -272,13 +274,11 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [deleteSessionTarget, setDeleteSessionTarget] = useState<AttendanceSession | null>(null);
-  const nowMinute = Math.floor(nowMs / 60_000);
-
   const activeSession = useMemo(() => {
     if (created?.session && isSessionOpen(created.session, nowMs)) return created.session;
     return sessions.find((session) => isSessionOpen(session, nowMs)) || null;
   }, [created, nowMs, sessions]);
-  const historySessions = useMemo(() => sessions.filter((session) => !isSessionOpen(session, nowMinute * 60_000)), [nowMinute, sessions]);
+  const historySessions = useMemo(() => sessions.filter((session) => !isSessionOpen(session, nowMs)), [nowMs, sessions]);
   const historySessionKey = useMemo(() => historySessions.map((session) => session.id).join("|"), [historySessions]);
   const activeAttendanceLink = activeSession
     ? created?.session.id === activeSession.id
@@ -498,6 +498,38 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
     setCreated(payload);
     setNotice("Attendance session is live.");
     await load();
+  }
+
+  async function closeAttendance(session: AttendanceSession) {
+    if (!window.confirm("Close attendance now? Students without a record will be saved as absent.")) return;
+
+    setClosingSessionId(session.id);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch(`/api/sessions/${session.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "close" })
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        setError(payload.error || "Attendance could not be closed.");
+        return;
+      }
+
+      setCreated(null);
+      setNowMs(Date.now());
+      await load();
+      setNotice(`Attendance closed and saved${payload.savedAbsences ? `; ${payload.savedAbsences} student(s) marked absent` : ""}.`);
+      setWorkspace("history", session.id);
+    } catch {
+      setError("Attendance could not be closed. Check the server connection.");
+    } finally {
+      setClosingSessionId(null);
+    }
   }
 
   async function addStudent(event: FormEvent<HTMLFormElement>) {
@@ -785,6 +817,8 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
             setCloseAfterMinutes={setCloseAfterMinutes}
             starting={starting}
             startAttendance={startAttendance}
+            closingSessionId={closingSessionId}
+            closeAttendance={closeAttendance}
             students={students}
             studentForm={studentForm}
             setStudentForm={setStudentForm}
@@ -892,6 +926,8 @@ function CurrentTab({
   setCloseAfterMinutes,
   starting,
   startAttendance,
+  closingSessionId,
+  closeAttendance,
   students,
   studentForm,
   setStudentForm,
@@ -915,6 +951,8 @@ function CurrentTab({
   setCloseAfterMinutes: (value: number) => void;
   starting: boolean;
   startAttendance: () => void;
+  closingSessionId: string | null;
+  closeAttendance: (session: AttendanceSession) => void;
   students: Student[];
   studentForm: { student_number: string; full_name: string; contact_number: string; profile_photo_data_url: string };
   setStudentForm: (value: { student_number: string; full_name: string; contact_number: string; profile_photo_data_url: string }) => void;
@@ -942,10 +980,20 @@ function CurrentTab({
     <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(320px,460px)_minmax(0,1fr)] 2xl:grid-cols-[520px_minmax(0,1fr)]">
       {activeSession && activeAttendanceLink ? (
         <QRCodeDisplay link={activeAttendanceLink}>
-          <div className="flex justify-center">
+          <div className="grid gap-2">
+            <button
+              type="button"
+              onClick={() => closeAttendance(activeSession)}
+              disabled={closingSessionId === activeSession.id}
+              className="focus-ring inline-flex w-full items-center justify-center gap-2 rounded bg-ledger px-4 py-3 text-sm font-bold text-white hover:bg-pool disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {closingSessionId === activeSession.id ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+              {closingSessionId === activeSession.id ? "Closing and saving..." : "Close and save attendance"}
+            </button>
             <button
               type="button"
               onClick={() => onDeleteSession(activeSession)}
+              disabled={closingSessionId === activeSession.id}
               className="focus-ring inline-flex w-full items-center justify-center gap-2 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 hover:border-red-700"
             >
               <Trash2 size={16} />
