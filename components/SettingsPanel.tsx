@@ -3,6 +3,7 @@
 import { KeyRound, Loader2, Save } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { SettingsPanelSkeleton } from "@/components/LoadingSkeletons";
+import { PasswordInput } from "@/components/PasswordInput";
 
 type Settings = {
   default_late_limit: number;
@@ -103,8 +104,7 @@ export function SettingsPanel() {
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="grid gap-2 text-sm font-semibold text-graphite sm:col-span-2">
             Current access code
-            <input
-              type="password"
+            <PasswordInput
               autoComplete="current-password"
               value={currentAccessCode}
               onChange={(event) => setCurrentAccessCode(event.target.value)}
@@ -113,8 +113,7 @@ export function SettingsPanel() {
           </label>
           <label className="grid gap-2 text-sm font-semibold text-graphite">
             New access code
-            <input
-              type="password"
+            <PasswordInput
               minLength={8}
               maxLength={128}
               autoComplete="new-password"
@@ -125,8 +124,7 @@ export function SettingsPanel() {
           </label>
           <label className="grid gap-2 text-sm font-semibold text-graphite">
             Confirm new access code
-            <input
-              type="password"
+            <PasswordInput
               minLength={8}
               maxLength={128}
               autoComplete="new-password"

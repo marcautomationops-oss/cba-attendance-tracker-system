@@ -1,4 +1,5 @@
 import { KeyRound } from "lucide-react";
+import { PasswordInput } from "@/components/PasswordInput";
 
 export function LoginForm({ nextPath, error }: { nextPath: string; error?: string }) {
   return (
@@ -6,10 +7,10 @@ export function LoginForm({ nextPath, error }: { nextPath: string; error?: strin
       <input type="hidden" name="next" value={nextPath} />
       <label className="grid gap-2 text-sm font-semibold text-graphite">
         Teacher access code
-        <input
+        <PasswordInput
           name="accessCode"
-          type="password"
-          className="focus-ring rounded border border-line bg-paper px-4 py-3 text-base font-bold text-ink shadow-sm"
+          className="focus-ring min-h-12 rounded border border-line bg-paper px-4 py-3 text-base font-bold text-ink shadow-sm"
+          autoComplete="current-password"
           autoFocus
           required
         />
