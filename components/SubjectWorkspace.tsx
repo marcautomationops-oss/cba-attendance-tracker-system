@@ -14,7 +14,6 @@ import {
   History,
   Loader2,
   Pencil,
-  PanelLeftOpen,
   Play,
   Plus,
   Radio,
@@ -808,25 +807,19 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
         </div>
       </section>
 
-      <div className="grid min-w-0 gap-4 lg:grid-cols-[210px_minmax(0,1fr)] lg:items-start lg:gap-6">
-        <div className="lg:sticky lg:top-6">
-          <button
-            type="button"
-            aria-label="Open workspace menu"
-            onClick={() => setSidebarOpen(true)}
-            className="focus-ring inline-flex min-h-12 w-full items-center justify-center gap-2 rounded bg-ledger px-4 font-bold text-white shadow-sm transition hover:bg-ink lg:hidden"
-          >
-            <PanelLeftOpen size={19} />
-            Workspace menu
-          </button>
-          <aside className="hidden border border-white/10 bg-ledger p-3 text-white shadow-sm lg:block">
-            <p className="mb-3 px-3 pt-2 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-white/55">Workspace</p>
-            <WorkspaceNavigation tab={tab} onSelect={(nextTab) => setWorkspace(nextTab)} />
-          </aside>
-        </div>
+      {!sidebarOpen ? (
+        <button
+          type="button"
+          aria-label="Open workspace menu"
+          onClick={() => setSidebarOpen(true)}
+          className="focus-ring fixed left-0 top-1/2 z-40 flex h-16 w-11 -translate-y-1/2 items-center justify-center rounded-r bg-ledger text-white shadow-soft transition hover:bg-ink"
+        >
+          <ChevronRight size={22} />
+        </button>
+      ) : null}
 
       {sidebarOpen ? (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="fixed inset-0 z-50">
           <button type="button" aria-label="Close menu" onClick={() => setSidebarOpen(false)} className="absolute inset-0 bg-ink/30" />
           <aside className="relative flex h-full w-full max-w-[300px] flex-col bg-ledger p-5 text-white shadow-soft">
             <div className="mb-7 flex items-center justify-between">
@@ -915,7 +908,6 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
           />
         ) : null}
       </section>
-      </div>
 
       {importRows ? (
         <ReviewModal title="Review Excel import" saving={savingImport} onClose={() => setImportRows(null)} onConfirm={saveImportRows}>
@@ -1037,7 +1029,7 @@ function CurrentTab({
   }
 
   return (
-    <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(320px,460px)_minmax(0,1fr)] 2xl:grid-cols-[520px_minmax(0,1fr)]">
+    <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(320px,460px)_minmax(0,1fr)] 2xl:grid-cols-[520px_minmax(0,1fr)]">
       {activeSession && activeAttendanceLink ? (
         <QRCodeDisplay link={activeAttendanceLink}>
           <div className="grid gap-2">
@@ -1062,7 +1054,7 @@ function CurrentTab({
           </div>
         </QRCodeDisplay>
       ) : (
-        <section className="min-w-0 rounded border border-line bg-white p-4 shadow-sm sm:p-5 2xl:p-7">
+        <section className="h-fit min-w-0 self-start rounded border border-line bg-white p-4 shadow-sm sm:p-5 2xl:p-7">
           <div className="grid min-h-[320px] content-center gap-6 text-center md:min-h-[420px]">
             <div>
               <UtilityLabel>Attendance control</UtilityLabel>
