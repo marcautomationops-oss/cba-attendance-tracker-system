@@ -35,11 +35,18 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 SUPABASE_SECRET_KEY=
 TEACHER_ACCESS_CODE=
+AUTH_SECRET=
 SEMAPHORE_API_KEY=
 SEMAPHORE_SENDER_NAME=
 ```
 
-`SUPABASE_SECRET_KEY` is server-only. Do not expose it in client code.
+`SUPABASE_SECRET_KEY` and `AUTH_SECRET` are server-only. Do not expose them in client code.
+
+Generate a strong session-signing secret with:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+```
 
 Semaphore credentials are stored in environment variables.
 
@@ -53,7 +60,7 @@ Semaphore credentials are stored in environment variables.
    - `profile-photos/`
    - `attendance-proofs/`
 6. Copy Supabase credentials into `.env.local`.
-7. Set `TEACHER_ACCESS_CODE`.
+7. Set `TEACHER_ACCESS_CODE` and a separate random `AUTH_SECRET`.
 
 ## Storage Paths
 
@@ -83,6 +90,7 @@ Open `http://localhost:3000/login`.
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
    - `SUPABASE_SECRET_KEY`
    - `TEACHER_ACCESS_CODE`
+   - `AUTH_SECRET`
    - `SEMAPHORE_API_KEY`
    - `SEMAPHORE_SENDER_NAME`
 4. Set `NEXT_PUBLIC_APP_URL` to the final Vercel URL.

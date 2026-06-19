@@ -4,6 +4,7 @@ import { cleanText, jsonError, parseJson } from "@/lib/api";
 import { checkSmsAlertAfterAttendance } from "@/lib/sms";
 import { ATTENDANCE_BUCKET, parseImageDataUrl, proofPhotoPath } from "@/lib/storage";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { clientAddress, consumeRateLimit, isSameOriginRequest } from "@/lib/security";
 import type { AttendanceSession, Student } from "@/lib/types";
 
 type Context = {
@@ -31,21 +32,26 @@ function isClosed(session: AttendanceSession) {
   return Date.now() > new Date(session.close_time).getTime();
 }
 
-export async function GET(_request: Request, context: Context) {
+export async function GET(request: Request, context: Context) {
   const { sessionToken } = await context.params;
+  const rateLimit = consumeRateLimit({ key: `attendance-read:${clientAddress(request)}:${sessionToken}`, limit: 120, windowMs: 10 * 60 * 1000 });
+  if (!rateLimit.allowed) {
+    return NextResponse.json({ error: "Too many attendance requests. Try again shortly." }, { status: 429, headers: { "retry-after": String(rateLimit.retryAfterSeconds) } });
+  }
+
   const { supabase, session, error } = await getSessionByToken(sessionToken);
 
   if (error || !session) return jsonError("Attendance session was not found.", 404);
   if (isClosed(session)) return jsonError("Attendance is already closed.", 410);
 
-  let students: Pick<Student, "id" | "student_number" | "full_name" | "section">[] = [];
+  let students: Pick<Student, "id" | "full_name" | "section">[] = [];
 
   if (session.subject_id) {
     const { data: links } = await supabase.from("subject_students").select("student_id").eq("subject_id", session.subject_id);
     if (links?.length) {
       const { data, error } = await supabase
         .from("students")
-        .select("id, student_number, full_name, section")
+        .select("id, full_name, section")
         .in(
           "id",
           links.map((link) => link.student_id)
@@ -60,7 +66,7 @@ export async function GET(_request: Request, context: Context) {
   if (!students.length) {
     let studentsQuery = supabase
       .from("students")
-      .select("id, student_number, full_name, section")
+      .select("id, full_name, section")
       .eq("is_active", true)
       .order("full_name");
 
@@ -85,11 +91,21 @@ export async function GET(_request: Request, context: Context) {
 }
 
 export async function POST(request: Request, context: Context) {
+  if (!isSameOriginRequest(request)) return jsonError("Cross-site request blocked.", 403);
+
   const { sessionToken } = await context.params;
   const body = await parseJson<AttendanceBody>(request);
   const studentId = cleanText(body?.student_id);
   const studentNumber = cleanText(body?.student_number);
   const photoDataUrl = cleanText(body?.photo_data_url);
+  const rateLimit = consumeRateLimit({
+    key: `attendance-submit:${clientAddress(request)}:${sessionToken}:${studentId || "unknown"}`,
+    limit: 5,
+    windowMs: 10 * 60 * 1000
+  });
+  if (!rateLimit.allowed) {
+    return NextResponse.json({ error: "Too many attendance attempts. Try again shortly." }, { status: 429, headers: { "retry-after": String(rateLimit.retryAfterSeconds) } });
+  }
 
   if (!studentId || !studentNumber || !photoDataUrl) {
     return jsonError("Choose your name, enter your student ID, then capture a photo.");

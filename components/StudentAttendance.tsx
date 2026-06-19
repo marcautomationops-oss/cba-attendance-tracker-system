@@ -7,7 +7,6 @@ import type { AttendanceStatus } from "@/lib/types";
 
 type PublicStudent = {
   id: string;
-  student_number: string;
   full_name: string;
   section: string | null;
 };

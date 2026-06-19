@@ -1,19 +1,21 @@
 import { NextResponse } from "next/server";
-import { AUTH_COOKIE, teacherCookieValue } from "@/lib/auth";
+import { AUTH_COOKIE, validateTeacherSession } from "@/lib/auth";
 
 export function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }
 
-export async function requireTeacher(request: Request) {
-  const cookieHeader = request.headers.get("cookie") || "";
-  const expected = await teacherCookieValue();
-  const hasCookie = cookieHeader
+function cookieValue(request: Request, name: string) {
+  const prefix = `${name}=`;
+  const cookie = (request.headers.get("cookie") || "")
     .split(";")
     .map((part) => part.trim())
-    .some((part) => part === `${AUTH_COOKIE}=${expected}`);
+    .find((part) => part.startsWith(prefix));
+  return cookie ? cookie.slice(prefix.length) : "";
+}
 
-  return Boolean(expected && hasCookie);
+export async function requireTeacher(request: Request) {
+  return validateTeacherSession(cookieValue(request, AUTH_COOKIE));
 }
 
 export function cleanText(value: unknown) {

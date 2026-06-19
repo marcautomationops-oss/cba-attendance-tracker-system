@@ -7,8 +7,8 @@ type Props = {
 
 export default async function LoginPage({ searchParams }: Props) {
   const params = await searchParams;
-  const nextPath = params.next?.startsWith("/") ? params.next : "/dashboard";
-  const error = params.error ? "The access code is not correct." : "";
+  const nextPath = params.next?.startsWith("/") && !params.next.startsWith("//") ? params.next : "/dashboard";
+  const error = params.error === "rate" ? "Too many login attempts. Try again in 15 minutes." : params.error ? "The access code is not correct." : "";
 
   return (
     <main className="grid min-h-screen place-items-center px-4 py-10">

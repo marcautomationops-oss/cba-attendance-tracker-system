@@ -1,21 +1,34 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { AUTH_COOKIE, teacherCookieValue } from "@/lib/auth";
+import { AUTH_COOKIE, validateTeacherSession } from "@/lib/auth";
+import { isSameOriginRequest } from "@/lib/security";
 
-const protectedRoutes = ["/dashboard", "/sections", "/settings"];
+const protectedPages = ["/dashboard", "/sections", "/settings"];
+const publicApiRoutes = ["/api/login", "/api/logout"];
+
+function isProtectedPage(path: string) {
+  return protectedPages.some((route) => path === route || path.startsWith(`${route}/`));
+}
+
+function isPublicApi(path: string) {
+  return publicApiRoutes.includes(path) || path.startsWith("/api/attendance/");
+}
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
-  const requiresTeacher = protectedRoutes.some((route) => path === route || path.startsWith(`${route}/`));
+  const privateApi = path.startsWith("/api/") && !isPublicApi(path);
+  const requiresTeacher = isProtectedPage(path) || privateApi;
 
-  if (!requiresTeacher) {
-    return NextResponse.next();
+  if (!requiresTeacher) return NextResponse.next();
+
+  if (privateApi && !isSameOriginRequest(request)) {
+    return NextResponse.json({ error: "Cross-site request blocked." }, { status: 403 });
   }
 
-  const cookie = request.cookies.get(AUTH_COOKIE)?.value;
-  const expected = await teacherCookieValue();
+  const validSession = await validateTeacherSession(request.cookies.get(AUTH_COOKIE)?.value);
+  if (validSession) return NextResponse.next();
 
-  if (cookie && expected && cookie === expected) {
-    return NextResponse.next();
+  if (privateApi) {
+    return NextResponse.json({ error: "Teacher login required." }, { status: 401, headers: { "cache-control": "no-store" } });
   }
 
   const loginUrl = new URL("/login", request.url);
@@ -24,5 +37,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/sections/:path*", "/settings/:path*"]
+  matcher: ["/dashboard/:path*", "/sections/:path*", "/settings/:path*", "/api/:path*"]
 };
