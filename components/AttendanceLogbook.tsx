@@ -192,11 +192,11 @@ export function AttendanceLogbook({
 
   return (
     <section className="min-w-0 border border-line bg-white shadow-sm">
-      <div className="border-b border-line bg-paper p-4 sm:p-5">
+      <div className="border-b border-line bg-paper p-3 sm:p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <p className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-pool">Class record</p>
-            <h2 className="mt-1 text-3xl font-bold text-ink">Attendance Logbook</h2>
+            <h2 className="mt-1 text-2xl font-bold text-ink sm:text-3xl">Attendance Logbook</h2>
           </div>
           <form onSubmit={applyRange} className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
             <label className="grid gap-1.5 text-sm font-bold text-graphite">

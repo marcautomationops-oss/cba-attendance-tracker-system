@@ -107,11 +107,11 @@ export function ExportCenter({ sections }: { sections: SectionOption[] }) {
 
   return (
     <div className="mx-auto max-w-7xl">
-      <div className="mb-7 flex flex-col gap-3 border-b border-[#9fb9d6]/60 pb-6 md:mb-9 md:flex-row md:items-end md:justify-between">
+      <div className="mb-5 flex flex-col gap-3 border-b border-[#9fb9d6]/60 pb-4 md:mb-9 md:flex-row md:items-end md:justify-between md:pb-6">
         <div>
           <p className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-[#2f6fea]">Global export</p>
-          <h1 className="mt-2 font-display text-4xl font-extrabold leading-none tracking-normal text-[#071529] md:text-5xl">Attendance summary</h1>
-          <p className="mt-3 max-w-2xl text-base font-medium leading-7 text-[#6f8197]">Choose a class and date range, verify the average, then export the gradebook-ready sheet.</p>
+          <h1 className="mt-2 font-display text-3xl font-extrabold leading-none tracking-normal text-[#071529] sm:text-4xl md:text-5xl">Attendance summary</h1>
+          <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-[#6f8197] sm:mt-3 sm:text-base sm:leading-7">Choose a class and date range, verify the average, then export the gradebook-ready sheet.</p>
         </div>
         <div className="flex items-center gap-3 font-mono text-xs font-bold uppercase tracking-[0.12em] text-[#47627f]">
           <span className="h-2.5 w-2.5 rounded-full bg-[#17b26a]" />
@@ -119,7 +119,7 @@ export function ExportCenter({ sections }: { sections: SectionOption[] }) {
         </div>
       </div>
 
-      <form onSubmit={loadPreview} className="cockpit-card grid gap-5 p-5 md:grid-cols-2 md:p-6 xl:grid-cols-[1.1fr_1.1fr_0.9fr_0.9fr_auto] xl:items-end">
+      <form onSubmit={loadPreview} className="cockpit-card grid gap-4 p-3 sm:p-5 md:grid-cols-2 md:p-6 xl:grid-cols-[1.1fr_1.1fr_0.9fr_0.9fr_auto] xl:items-end">
         <label className="grid gap-2 text-sm font-bold text-[#47627f]">
           Section
           <select
@@ -205,14 +205,14 @@ export function ExportCenter({ sections }: { sections: SectionOption[] }) {
             ["Students", preview ? String(preview.students) : "--"],
             ["Range", preview ? `${preview.from} to ${preview.to}` : "Choose dates"]
           ].map(([label, value], index) => (
-            <div key={label} className={`px-5 py-4 ${index ? "border-t border-[#9fb9d6]/50 sm:border-l sm:border-t-0" : ""}`}>
+            <div key={label} className={`px-3 py-3 sm:px-5 sm:py-4 ${index ? "border-t border-[#9fb9d6]/50 sm:border-l sm:border-t-0" : ""}`}>
               <p className="font-mono text-[11px] font-bold uppercase tracking-[0.15em] text-[#5f7590]">{label}</p>
               <p className="mt-1 text-lg font-extrabold text-[#071529]">{value}</p>
             </div>
           ))}
         </div>
 
-        <div className="flex flex-col gap-3 border-b border-[#9fb9d6]/50 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-3 border-b border-[#9fb9d6]/50 px-3 py-3 sm:px-5 sm:py-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm font-bold text-[#47627f]">
             <span>Present <strong className="text-[#071529]">1</strong></span>
             <span>Late <strong className="text-[#071529]">0.5</strong></span>

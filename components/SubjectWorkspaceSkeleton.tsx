@@ -4,16 +4,16 @@ function Block({ className = "" }: { className?: string }) {
 
 export function SubjectWorkspaceSkeleton() {
   return (
-    <div className="grid min-w-0 gap-6" role="status" aria-label="Loading subject workspace">
+    <div className="grid min-w-0 gap-4 md:gap-6" role="status" aria-label="Loading subject workspace">
       <section className="flex min-w-0 flex-col gap-4 md:flex-row md:items-end md:justify-between" aria-hidden="true">
         <div className="min-w-0 flex-1">
           <Block className="h-5 w-32" />
-          <Block className="mt-5 h-[clamp(2.25rem,11vw,3.75rem)] w-[min(82%,28rem)] md:h-[3.75rem] 2xl:h-[4.5rem]" />
+          <Block className="mt-3 h-[clamp(1.9rem,9vw,3rem)] w-[min(82%,28rem)] md:mt-5 md:h-[3rem] xl:h-[3.75rem] 2xl:h-[4.5rem]" />
         </div>
         <div className="hidden md:block md:min-w-80" />
       </section>
 
-      <div aria-hidden="true" className="fixed left-0 top-1/2 z-40 h-16 w-11 -translate-y-1/2 rounded-r bg-[#9aabc0]" />
+      <div aria-hidden="true" className="h-14 rounded border border-line bg-[#102a56] md:h-16 xl:w-56" />
 
       <section className="grid min-w-0 gap-5 xl:grid-cols-[minmax(320px,460px)_minmax(0,1fr)] 2xl:grid-cols-[520px_minmax(0,1fr)]" aria-hidden="true">
         <div className="min-w-0 rounded border border-line bg-white p-4 shadow-sm sm:p-5 2xl:p-7">

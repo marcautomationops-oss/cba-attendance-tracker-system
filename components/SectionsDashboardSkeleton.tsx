@@ -2,9 +2,9 @@ function SkeletonCard({ className = "" }: { className?: string }) {
   return (
     <article
       aria-hidden="true"
-      className={`cockpit-card flex min-h-[260px] flex-col overflow-hidden md:min-h-[330px] lg:min-h-[360px] ${className}`}
+      className={`cockpit-card flex min-h-[190px] flex-col overflow-hidden md:min-h-[260px] lg:min-h-[300px] 2xl:min-h-[330px] ${className}`}
     >
-      <div className="flex flex-1 flex-col justify-between gap-9 p-6 md:p-7">
+      <div className="flex flex-1 flex-col justify-between gap-5 p-4 sm:p-5 md:gap-7 md:p-6 2xl:p-7">
         <div className="flex min-h-11 items-center justify-between gap-4">
           <div className="skeleton-block h-4 w-24" />
           <div className="skeleton-block h-4 w-16" />
@@ -12,7 +12,7 @@ function SkeletonCard({ className = "" }: { className?: string }) {
         <div className="skeleton-block mx-auto h-10 w-3/5 md:h-11" />
         <div className="skeleton-block h-px w-full" />
       </div>
-      <div className="flex min-h-16 items-center justify-between border-t border-[#9fb9d6]/38 bg-[#eaf4ff]/70 px-6 py-4 md:px-7 md:py-5">
+      <div className="flex min-h-12 items-center justify-between border-t border-[#9fb9d6]/38 bg-[#eaf4ff]/70 px-4 py-3 md:min-h-14 md:px-6">
         <div className="skeleton-block h-4 w-28" />
         <div className="skeleton-block h-5 w-5" />
       </div>
@@ -24,7 +24,7 @@ function AddSectionSkeleton() {
   return (
     <article
       aria-hidden="true"
-      className="cockpit-card cockpit-add-card hidden min-h-[330px] flex-col justify-between gap-7 overflow-hidden border-dashed p-6 md:col-span-2 md:flex md:p-7 lg:col-span-1 lg:min-h-[360px]"
+      className="cockpit-card cockpit-add-card hidden min-h-[260px] flex-col justify-between gap-6 overflow-hidden border-dashed p-6 md:col-span-2 md:flex lg:col-span-1 lg:min-h-[300px] 2xl:min-h-[330px]"
     >
       <div className="flex min-h-11 items-center justify-between gap-4">
         <div className="skeleton-block h-4 w-36" />
@@ -46,12 +46,12 @@ function AddSectionSkeleton() {
 export function SectionsDashboardSkeleton() {
   return (
     <div className="mx-auto max-w-6xl" role="status" aria-label="Loading sections">
-      <div className="mb-8 text-left md:mb-12 md:text-center lg:mb-14">
-        <div className="skeleton-block h-[clamp(2.7rem,12vw,4.25rem)] w-[min(90%,32rem)] md:mx-auto lg:h-[4.5rem]" />
-        <div className="skeleton-block mt-3 h-7 w-[min(75%,19rem)] md:mx-auto md:mt-5" />
+      <div className="mb-6 text-left md:mb-9 md:text-center lg:mb-11">
+        <div className="skeleton-block h-[clamp(2rem,9vw,3.25rem)] w-[min(90%,32rem)] md:mx-auto lg:h-[3.75rem] 2xl:h-[4.5rem]" />
+        <div className="skeleton-block mt-2 h-6 w-[min(75%,19rem)] md:mx-auto md:mt-4" />
       </div>
 
-      <section className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-7 lg:grid-cols-3 xl:gap-8">
+      <section className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3 xl:gap-6 2xl:gap-8">
         <SkeletonCard />
         <SkeletonCard />
         <AddSectionSkeleton />

@@ -168,9 +168,9 @@ const tabs: { id: Tab; label: string; icon: ComponentType<{ size?: number }> }[]
 
 const validTabs = new Set<Tab>(["current", "logbook", "history", "analytics", "alerts"]);
 
-function WorkspaceNavigation({ tab, onSelect }: { tab: Tab; onSelect: (tab: Tab) => void }) {
+function WorkspaceNavigation({ tab, onSelect, compact = false }: { tab: Tab; onSelect: (tab: Tab) => void; compact?: boolean }) {
   return (
-    <nav className="grid gap-2">
+    <nav className={compact ? "grid grid-cols-5 gap-1" : "grid gap-2"}>
       {tabs.map((item) => {
         const Icon = item.icon;
         const active = tab === item.id;
@@ -179,8 +179,10 @@ function WorkspaceNavigation({ tab, onSelect }: { tab: Tab; onSelect: (tab: Tab)
             key={item.id}
             type="button"
             onClick={() => onSelect(item.id)}
-            className={`focus-ring inline-flex min-h-12 w-full items-center gap-3 rounded px-4 py-3 text-left text-sm font-bold transition ${
-              active ? "bg-white text-ledger" : "text-white/75 hover:bg-white/10 hover:text-white"
+            className={`focus-ring inline-flex w-full items-center justify-center rounded font-bold transition ${
+              compact ? "min-h-14 flex-col gap-1 px-1 py-2 text-[10px] sm:text-xs md:min-h-12 md:flex-row md:gap-2 md:px-3 md:text-sm" : "min-h-12 gap-3 px-4 py-3 text-left text-sm"
+            } ${
+              active ? "bg-white text-ledger shadow-sm" : "text-white/75 hover:bg-white/10 hover:text-white"
             }`}
           >
             <Icon size={18} />
@@ -268,7 +270,6 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
 
   const [tab, setTab] = useState<Tab>("current");
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [logbookDirty, setLogbookDirty] = useState(false);
   const [section, setSection] = useState<Section | null>(null);
   const [subject, setSubject] = useState<Subject | null>(null);
@@ -792,14 +793,14 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
   }
 
   return (
-    <div className="grid min-w-0 gap-6">
+    <div className="grid min-w-0 gap-4 pb-20 md:gap-6 md:pb-0">
       <section className="flex min-w-0 flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div className="min-w-0">
           <Link href={`/sections/${section.id}`} className="focus-ring inline-flex min-h-11 max-w-full items-center gap-2 rounded px-1 py-1 text-sm font-bold uppercase text-graphite hover:text-pool">
             <ChevronLeft size={16} />
             <span className="min-w-0 break-words">{section.name}</span>
           </Link>
-          <h1 className="selection-card-title mt-2 text-[clamp(2.25rem,11vw,3.75rem)] font-bold leading-[1.02] tracking-tight text-ink md:text-6xl 2xl:text-7xl">{subject.name}</h1>
+          <h1 className="selection-card-title mt-1 text-[clamp(1.9rem,9vw,3rem)] font-bold leading-[1.02] tracking-tight text-ink sm:mt-2 md:text-5xl xl:text-6xl 2xl:text-7xl">{subject.name}</h1>
         </div>
         <div className="grid gap-2 md:min-w-80">
           {notice ? <p className="rounded border border-green-700 bg-green-50 px-3 py-2 text-sm font-bold text-green-800">{notice}</p> : null}
@@ -807,39 +808,21 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
         </div>
       </section>
 
-      {!sidebarOpen ? (
-        <button
-          type="button"
-          aria-label="Open workspace menu"
-          onClick={() => setSidebarOpen(true)}
-          className="focus-ring fixed left-0 top-1/2 z-40 flex h-16 w-11 -translate-y-1/2 items-center justify-center rounded-r bg-ledger text-white shadow-soft transition hover:bg-ink"
-        >
-          <ChevronRight size={22} />
-        </button>
-      ) : null}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-ledger px-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] pt-1 shadow-[0_-12px_30px_rgba(7,21,41,0.18)] md:hidden">
+        <WorkspaceNavigation tab={tab} onSelect={setWorkspace} compact />
+      </div>
 
-      {sidebarOpen ? (
-        <div className="fixed inset-0 z-50">
-          <button type="button" aria-label="Close menu" onClick={() => setSidebarOpen(false)} className="absolute inset-0 bg-ink/30" />
-          <aside className="relative flex h-full w-full max-w-[300px] flex-col bg-ledger p-5 text-white shadow-soft">
-            <div className="mb-7 flex items-center justify-between">
-              <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-white/60">Workspace</p>
-              <button type="button" onClick={() => setSidebarOpen(false)} className="focus-ring grid h-11 w-11 place-items-center rounded text-white/80 hover:bg-white/10 hover:text-white">
-                <X size={20} />
-              </button>
-            </div>
-            <WorkspaceNavigation
-              tab={tab}
-              onSelect={(nextTab) => {
-                setWorkspace(nextTab);
-                setSidebarOpen(false);
-              }}
-            />
-          </aside>
-        </div>
-      ) : null}
+      <div className="hidden rounded border border-line bg-ledger p-2 shadow-sm md:block xl:hidden">
+        <WorkspaceNavigation tab={tab} onSelect={setWorkspace} compact />
+      </div>
 
-      <section className="min-w-0">
+      <div className="grid min-w-0 gap-6 xl:grid-cols-[220px_minmax(0,1fr)] 2xl:grid-cols-[240px_minmax(0,1fr)]">
+        <aside className="sticky top-5 hidden h-fit rounded border border-white/10 bg-ledger p-3 text-white shadow-soft xl:block">
+          <p className="mb-3 px-4 pt-2 font-mono text-xs font-bold uppercase tracking-[0.22em] text-white/55">Workspace</p>
+          <WorkspaceNavigation tab={tab} onSelect={setWorkspace} />
+        </aside>
+
+        <section className="min-w-0">
         {tab === "current" ? (
           <CurrentTab
             activeSession={activeSession}
@@ -907,7 +890,8 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
             sendSms={sendSms}
           />
         ) : null}
-      </section>
+        </section>
+      </div>
 
       {importRows ? (
         <ReviewModal title="Review Excel import" saving={savingImport} onClose={() => setImportRows(null)} onConfirm={saveImportRows}>
@@ -1761,19 +1745,19 @@ function AnalyticsPanel({ analytics, loaded }: { analytics: AnalyticsPayload | n
 
   return (
     <>
-      <section className="grid gap-5">
-        <div className="rounded border border-[#07172f] bg-[#07172f] p-4 text-white shadow-soft 2xl:p-5">
-          <div className="mb-4">
+      <section className="grid gap-3 sm:gap-4 lg:gap-5">
+        <div className="rounded border border-[#07172f] bg-[#07172f] p-3 text-white shadow-soft sm:p-4 2xl:p-5">
+          <div className="mb-3 sm:mb-4">
             <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-blue-200">Analytics cockpit</p>
-            <h2 className="mt-2 text-2xl font-bold">Class Summary</h2>
+            <h2 className="mt-1 text-xl font-bold sm:mt-2 sm:text-2xl">Class Summary</h2>
           </div>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 2xl:grid-cols-6">
             {topCards.map((card) => (
-              <div key={card.label} className="rounded border border-white/10 bg-white/8 p-4">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-100">{card.label}</p>
-                <p className="mt-3 text-3xl font-bold">{card.value}</p>
-                <p className="mt-2 min-h-10 text-sm font-semibold leading-5 text-white/70">{card.subtext}</p>
-                <div className="mt-4 h-1.5 overflow-hidden rounded bg-white/10">
+              <div key={card.label} className="rounded border border-white/10 bg-white/8 p-3 sm:p-4">
+                <p className="text-[10px] font-bold uppercase leading-4 tracking-[0.12em] text-blue-100 sm:text-xs sm:tracking-[0.16em]">{card.label}</p>
+                <p className="mt-1 text-2xl font-bold sm:mt-2 sm:text-3xl">{card.value}</p>
+                <p className="mt-1 hidden min-h-10 text-sm font-semibold leading-5 text-white/70 sm:block">{card.subtext}</p>
+                <div className="mt-2 h-1 overflow-hidden rounded bg-white/10 sm:mt-4 sm:h-1.5">
                   <div className={`h-full w-2/3 ${card.accent}`} />
                 </div>
               </div>
@@ -1781,14 +1765,14 @@ function AnalyticsPanel({ analytics, loaded }: { analytics: AnalyticsPayload | n
           </div>
         </div>
 
-        <section className="rounded border border-line bg-white p-5 shadow-sm">
-          <div className="mb-5">
-            <h3 className="text-2xl font-bold text-ink">Attendance Leaders</h3>
+        <section className="rounded border border-line bg-white p-3 shadow-sm sm:p-5">
+          <div className="mb-3 sm:mb-5">
+            <h3 className="text-xl font-bold text-ink sm:text-2xl">Attendance Leaders</h3>
             <p className="mt-1 text-sm font-semibold text-graphite">Quick view of top attendance patterns.</p>
           </div>
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-3 lg:gap-4">
             {leaderGroups.map((group) => (
-              <div key={group.title} className="rounded border border-line bg-paper p-4">
+              <div key={group.title} className="rounded border border-line bg-paper p-3 sm:p-4">
                 <h4 className="text-lg font-bold text-ink">{group.title}</h4>
                 <p className="mt-1 text-sm font-semibold text-graphite">{group.subtext}</p>
                 <div className="mt-4 grid gap-2">
@@ -1807,26 +1791,26 @@ function AnalyticsPanel({ analytics, loaded }: { analytics: AnalyticsPayload | n
         </section>
 
         <div className="grid gap-5">
-          <section className="rounded border border-line bg-white p-5 shadow-sm">
-            <div className="mb-5">
-              <h3 className="text-2xl font-bold text-ink">Attendance Over Time</h3>
+          <section className="rounded border border-line bg-white p-3 shadow-sm sm:p-5">
+            <div className="mb-3 sm:mb-5">
+              <h3 className="text-xl font-bold text-ink sm:text-2xl">Attendance Over Time</h3>
               <p className="mt-1 text-sm font-semibold text-graphite">Shows on-time, late, and absent students for the last 8 closed sessions.</p>
             </div>
             <div className="grid gap-4">
               {(analytics.attendance_over_time || []).map((session) => (
-                <div key={session.session_id} className="grid gap-2 md:grid-cols-[72px_1fr] md:items-center">
-                  <div className="font-mono text-xs font-bold uppercase text-graphite">
+                <div key={session.session_id} className="grid grid-cols-[58px_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[72px_minmax(0,1fr)] sm:gap-3">
+                  <div className="font-mono text-[10px] font-bold uppercase text-graphite sm:text-xs">
                     <p>{new Date(session.start_time).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
-                    <p className="mt-1 text-[11px] text-graphite/70">{new Date(session.start_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</p>
+                    <p className="mt-0.5 text-[10px] text-graphite/70 sm:mt-1 sm:text-[11px]">{new Date(session.start_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</p>
                   </div>
                   <div>
-                    <div className="flex h-7 overflow-hidden rounded border border-line bg-paper">
+                    <div className="flex h-5 overflow-hidden rounded border border-line bg-paper sm:h-7">
                       <div className={statusTone.on_time.bar} style={{ width: `${percent(session.on_time, session.total)}%` }} title={`On time ${session.on_time}`} />
                       <div className={statusTone.late.bar} style={{ width: `${percent(session.late, session.total)}%` }} title={`Late ${session.late}`} />
                       <div className={statusTone.absent.bar} style={{ width: `${percent(session.absent, session.total)}%` }} title={`Absent ${session.absent}`} />
                       <div className={statusTone.excused.bar} style={{ width: `${percent(session.excused, session.total)}%` }} title={`Excused ${session.excused}`} />
                     </div>
-                    <div className="mt-1 flex flex-wrap gap-3 text-xs font-bold text-graphite">
+                    <div className="mt-1 grid grid-cols-2 gap-x-2 text-[10px] font-bold text-graphite sm:flex sm:flex-wrap sm:gap-3 sm:text-xs">
                       <span>On time {session.on_time}</span>
                       <span>Late {session.late}</span>
                       <span>Absent {session.absent}</span>
@@ -1840,16 +1824,16 @@ function AnalyticsPanel({ analytics, loaded }: { analytics: AnalyticsPayload | n
           </section>
         </div>
 
-        <section className="rounded border border-line bg-white p-5 shadow-sm">
-          <div className="mb-5">
-            <h3 className="text-2xl font-bold text-ink">Student Analytics</h3>
+        <section className="rounded border border-line bg-white p-3 shadow-sm sm:p-5">
+          <div className="mb-3 sm:mb-5">
+            <h3 className="text-xl font-bold text-ink sm:text-2xl">Student Analytics</h3>
             <p className="mt-1 text-sm font-semibold text-graphite">Click a student to see their attendance details.</p>
           </div>
-          <div className="mb-4 flex flex-wrap gap-2">
+          <div className="-mx-3 mb-3 flex gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:mb-4 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
             <button
               type="button"
               onClick={() => setRiskFilter(null)}
-              className={`focus-ring min-h-11 rounded border px-3 py-2 text-sm font-bold transition ${riskFilter === null ? "border-[#2563eb] bg-blue-50 text-[#102a56]" : "border-line bg-paper text-graphite hover:border-pool"}`}
+              className={`focus-ring min-h-10 shrink-0 rounded border px-3 py-2 text-xs font-bold transition sm:min-h-11 sm:text-sm ${riskFilter === null ? "border-[#2563eb] bg-blue-50 text-[#102a56]" : "border-line bg-paper text-graphite hover:border-pool"}`}
             >
               All {analytics.individual.length}
             </button>
@@ -1861,7 +1845,7 @@ function AnalyticsPanel({ analytics, loaded }: { analytics: AnalyticsPayload | n
                   key={risk}
                   type="button"
                   onClick={() => setRiskFilter(selected ? null : risk)}
-                  className={`focus-ring min-h-11 rounded border px-3 py-2 text-sm font-bold transition ${selected ? "border-[#2563eb] bg-blue-50 text-[#102a56]" : `${riskTone[risk].border} ${riskTone[risk].bg} ${riskTone[risk].text}`}`}
+                  className={`focus-ring min-h-10 shrink-0 rounded border px-3 py-2 text-xs font-bold transition sm:min-h-11 sm:text-sm ${selected ? "border-[#2563eb] bg-blue-50 text-[#102a56]" : `${riskTone[risk].border} ${riskTone[risk].bg} ${riskTone[risk].text}`}`}
                 >
                   {risk} {count}
                 </button>
@@ -1896,18 +1880,34 @@ function AnalyticsPanel({ analytics, loaded }: { analytics: AnalyticsPayload | n
                     setSelectedStudent(student);
                     setHistoryMonth("");
                   }}
-                  className={`focus-ring grid gap-3 rounded border border-line bg-paper p-3 text-left transition hover:border-[#2563eb] hover:bg-white xl:grid-cols-[minmax(180px,1.4fr)_90px_70px_80px_130px_100px_150px] xl:items-center ${tone.border}`}
+                  className={`focus-ring grid gap-3 rounded border border-line bg-paper p-3 text-left transition hover:border-[#2563eb] hover:bg-white sm:p-4 xl:grid-cols-[minmax(180px,1.4fr)_90px_70px_80px_130px_100px_150px] xl:items-center xl:p-3 ${tone.border}`}
                 >
-                  <div className="min-w-0 border-l-4 pl-3" style={{ borderColor: student.risk === "Good" ? "#16a34a" : student.risk === "Watch" ? "#d97706" : student.risk === "At Risk" ? "#ea580c" : "#dc2626" }}>
-                    <p className="break-words font-bold text-ink">{student.full_name}</p>
-                    <p className="font-mono text-xs text-graphite">{student.student_number}</p>
+                  <div className="flex min-w-0 items-start justify-between gap-3 xl:block">
+                    <div className="min-w-0 border-l-4 pl-3" style={{ borderColor: student.risk === "Good" ? "#16a34a" : student.risk === "Watch" ? "#d97706" : student.risk === "At Risk" ? "#ea580c" : "#dc2626" }}>
+                      <p className="break-words font-bold text-ink">{student.full_name}</p>
+                      <p className="font-mono text-xs text-graphite">{student.student_number}</p>
+                    </div>
+                    <span className={`inline-flex shrink-0 rounded border px-2 py-1 text-[11px] font-bold xl:hidden ${tone.border} ${tone.bg} ${tone.text}`}>{student.risk}</span>
                   </div>
-                  <span className="text-sm font-bold text-ink">{student.attendance_percentage}%</span>
-                  <span className="text-sm font-bold text-graphite">{student.late_count}</span>
-                  <span className="text-sm font-bold text-graphite">{student.absent_count}</span>
-                  <span className="text-sm font-bold text-graphite">{student.trend}</span>
-                  <span className={`inline-flex w-fit rounded border px-2.5 py-1 text-xs font-bold ${tone.border} ${tone.bg} ${tone.text}`}>{student.risk}</span>
-                  <span className="text-sm font-bold text-ink">{student.action}</span>
+                  <dl className="grid grid-cols-3 divide-x divide-line rounded border border-line bg-white xl:contents">
+                    <div className="px-2 py-2 xl:contents">
+                      <dt className="font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-graphite xl:hidden">Attendance</dt>
+                      <dd className="mt-0.5 text-sm font-bold text-ink xl:mt-0">{student.attendance_percentage}%</dd>
+                    </div>
+                    <div className="px-2 py-2 xl:contents">
+                      <dt className="font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-graphite xl:hidden">Late</dt>
+                      <dd className="mt-0.5 text-sm font-bold text-graphite xl:mt-0">{student.late_count}</dd>
+                    </div>
+                    <div className="px-2 py-2 xl:contents">
+                      <dt className="font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-graphite xl:hidden">Absent</dt>
+                      <dd className="mt-0.5 text-sm font-bold text-graphite xl:mt-0">{student.absent_count}</dd>
+                    </div>
+                  </dl>
+                  <div className="flex items-center justify-between gap-3 border-t border-line pt-2 xl:contents">
+                    <span className="min-w-0 text-xs font-bold text-graphite sm:text-sm"><span className="text-graphite/70 xl:hidden">Trend: </span>{student.trend}</span>
+                    <span className={`hidden w-fit rounded border px-2.5 py-1 text-xs font-bold xl:inline-flex ${tone.border} ${tone.bg} ${tone.text}`}>{student.risk}</span>
+                    <span className="shrink-0 text-xs font-bold text-ink sm:text-sm"><span className="text-graphite/70 xl:hidden">Next: </span>{student.action}</span>
+                  </div>
                 </button>
               );
             })}
@@ -1920,7 +1920,7 @@ function AnalyticsPanel({ analytics, loaded }: { analytics: AnalyticsPayload | n
       {selectedStudent ? (
         <div className="fixed inset-0 z-50">
           <button type="button" aria-label="Close student details" onClick={() => setSelectedStudent(null)} className="absolute inset-0 bg-ink/35" />
-          <aside className="absolute right-0 top-0 flex h-full w-full max-w-xl flex-col overflow-y-auto border-l border-line bg-white p-4 shadow-soft sm:p-5">
+          <aside className="absolute inset-x-0 bottom-0 flex max-h-[92dvh] w-full flex-col overflow-y-auto rounded-t-xl border-t border-line bg-white p-4 shadow-soft sm:inset-y-0 sm:left-auto sm:max-h-none sm:max-w-xl sm:rounded-none sm:border-l sm:border-t-0 sm:p-5">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <p className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-pool">Student Details</p>
@@ -1932,7 +1932,7 @@ function AnalyticsPanel({ analytics, loaded }: { analytics: AnalyticsPayload | n
               </button>
             </div>
             <p className="mb-5 text-sm font-semibold text-graphite">Attendance history and recommended action.</p>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               {[
                 ["Attendance", `${selectedStudent.attendance_percentage}%`],
                 ["On time", selectedStudent.on_time_count],
@@ -1941,9 +1941,9 @@ function AnalyticsPanel({ analytics, loaded }: { analytics: AnalyticsPayload | n
                 ["Excused", selectedStudent.excused_count],
                 ["Trend", selectedStudent.trend]
               ].map(([label, value]) => (
-                <div key={label} className="rounded border border-line bg-paper p-3">
-                  <p className="font-mono text-xs font-bold uppercase tracking-[0.14em] text-graphite">{label}</p>
-                  <p className="mt-2 text-2xl font-bold text-ink">{value}</p>
+                <div key={label} className="rounded border border-line bg-paper p-2.5 sm:p-3">
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-graphite sm:text-xs sm:tracking-[0.14em]">{label}</p>
+                  <p className="mt-1 text-lg font-bold text-ink sm:mt-2 sm:text-2xl">{value}</p>
                 </div>
               ))}
             </div>

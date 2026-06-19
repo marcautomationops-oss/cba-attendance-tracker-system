@@ -97,17 +97,17 @@ export function SectionWorkspace({ sectionId }: { sectionId: string }) {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <Link href="/dashboard" className="focus-ring mb-6 inline-flex min-h-11 items-center gap-2 rounded px-1 py-1 font-mono text-xs font-bold uppercase tracking-[0.16em] text-[#6f8197] hover:text-[#2f6fea]">
+      <Link href="/dashboard" className="focus-ring mb-4 inline-flex min-h-10 items-center gap-2 rounded px-1 py-1 font-mono text-xs font-bold uppercase tracking-[0.16em] text-[#6f8197] hover:text-[#2f6fea] md:mb-6">
         <ChevronLeft size={16} />
         Sections
       </Link>
-      <div className="mb-8 text-left md:mb-12 md:text-center lg:mb-14">
-        <h1 className="selection-card-title font-display text-[clamp(2.7rem,12vw,4.25rem)] font-extrabold leading-[0.95] tracking-[-0.045em] text-[#071529] lg:text-7xl">{section.name}</h1>
-        <p className="mt-3 text-lg font-medium leading-7 text-[#6f8197] md:mt-5">Select a subject to manage attendance</p>
+      <div className="mb-6 text-left md:mb-9 md:text-center lg:mb-11">
+        <h1 className="selection-card-title font-display text-[clamp(2rem,9vw,3.25rem)] font-extrabold leading-[0.98] tracking-[-0.045em] text-[#071529] lg:text-6xl 2xl:text-7xl">{section.name}</h1>
+        <p className="mt-2 text-sm font-medium leading-6 text-[#6f8197] sm:text-base md:mt-4 md:text-lg">Select a subject to manage attendance</p>
       </div>
       {error ? <p className="mb-5 rounded border border-signal bg-red-50 px-3 py-2 text-sm font-semibold text-signal">{error}</p> : null}
 
-      <section className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-7 lg:grid-cols-3 xl:gap-8">
+      <section className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3 xl:gap-6 2xl:gap-8">
         {subjects.map((subject) => (
           <SelectionCard
             key={subject.id}

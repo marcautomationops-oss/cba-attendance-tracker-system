@@ -36,13 +36,13 @@ type AddItemSheetProps = {
 
 export function SelectionCard({ label, name, href, actionLabel, onControl }: SelectionCardProps) {
   return (
-    <article className="cockpit-card focus-within:border-[#2f6fea] group relative flex min-h-[260px] flex-col overflow-hidden text-left transition hover:-translate-y-1 hover:border-[#2f6fea] hover:shadow-soft md:min-h-[330px] lg:min-h-[360px]">
+    <article className="cockpit-card focus-within:border-[#2f6fea] group relative flex min-h-[190px] flex-col overflow-hidden text-left transition hover:border-[#2f6fea] hover:shadow-soft md:min-h-[260px] lg:min-h-[300px] xl:hover:-translate-y-1 2xl:min-h-[330px]">
       <Link
         href={href}
         aria-label={`${actionLabel}: ${name}`}
         className="focus-ring absolute inset-0 z-10"
       />
-      <div className="pointer-events-none relative z-20 flex flex-1 flex-col justify-between gap-9 p-6 md:p-7">
+      <div className="pointer-events-none relative z-20 flex flex-1 flex-col justify-between gap-5 p-4 sm:p-5 md:gap-7 md:p-6 2xl:p-7">
         <div className="flex items-center justify-between gap-4">
           <button
             type="button"
@@ -59,14 +59,14 @@ export function SelectionCard({ label, name, href, actionLabel, onControl }: Sel
         </div>
 
         <div className="block px-1">
-          <h2 className="selection-card-title font-display text-center text-[clamp(2rem,10vw,3rem)] font-extrabold leading-[0.98] tracking-[-0.035em] text-[#071529] md:text-[42px]">
+          <h2 className="selection-card-title font-display text-center text-[clamp(1.65rem,8vw,2.25rem)] font-extrabold leading-[1] tracking-[-0.035em] text-[#071529] md:text-[36px] xl:text-[40px]">
             {name}
           </h2>
         </div>
 
         <div className="cockpit-rule" />
       </div>
-      <div className="pointer-events-none relative z-20 flex min-h-16 items-center justify-between border-t border-[#9fb9d6]/38 bg-[#eaf4ff]/70 px-6 py-4 text-sm font-bold uppercase tracking-[0.06em] text-[#061426] md:px-7 md:py-5">
+      <div className="pointer-events-none relative z-20 flex min-h-12 items-center justify-between border-t border-[#9fb9d6]/38 bg-[#eaf4ff]/70 px-4 py-3 text-xs font-bold uppercase tracking-[0.06em] text-[#061426] sm:px-5 md:min-h-14 md:px-6 md:text-sm 2xl:px-7">
         <span className="min-w-0 break-words">{actionLabel}</span>
         <ArrowRight className="shrink-0 transition group-hover:translate-x-1" size={22} />
       </div>
@@ -106,7 +106,7 @@ export function AddItemForm({
 }: AddItemFormProps) {
   const formClassName = compact
     ? `grid gap-5 text-left ${className}`
-    : `cockpit-card cockpit-add-card flex min-h-[330px] flex-col justify-between gap-7 overflow-hidden border-dashed p-6 text-left md:p-7 lg:min-h-[360px] ${className}`;
+    : `cockpit-card cockpit-add-card flex min-h-[260px] flex-col justify-between gap-5 overflow-hidden border-dashed p-5 text-left md:min-h-[260px] md:gap-6 md:p-6 lg:min-h-[300px] 2xl:min-h-[330px] 2xl:p-7 ${className}`;
 
   return (
     <form

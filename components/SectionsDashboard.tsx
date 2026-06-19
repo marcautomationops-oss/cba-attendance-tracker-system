@@ -88,13 +88,13 @@ export function SectionsDashboard({ initialSections, initialError = "" }: Sectio
 
   return (
     <div className="mx-auto max-w-6xl">
-      <div className="mb-8 text-left md:mb-12 md:text-center lg:mb-14">
-        <h1 className="font-display text-[clamp(2.7rem,12vw,4.25rem)] font-extrabold leading-[0.95] tracking-[-0.045em] text-[#071529] lg:text-7xl">Choose a section</h1>
-        <p className="mt-3 text-lg font-medium leading-7 text-[#6f8197] md:mt-5">Select a section to manage attendance</p>
+      <div className="mb-6 text-left md:mb-9 md:text-center lg:mb-11">
+        <h1 className="font-display text-[clamp(2rem,9vw,3.25rem)] font-extrabold leading-[0.98] tracking-[-0.045em] text-[#071529] lg:text-6xl 2xl:text-7xl">Choose a section</h1>
+        <p className="mt-2 text-sm font-medium leading-6 text-[#6f8197] sm:text-base md:mt-4 md:text-lg">Select a section to manage attendance</p>
       </div>
       {error ? <p className="mb-5 rounded border border-signal bg-red-50 px-3 py-2 text-sm font-semibold text-signal">{error}</p> : null}
 
-      <section className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-7 lg:grid-cols-3 xl:gap-8">
+      <section className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3 xl:gap-6 2xl:gap-8">
         {sections.map((section) => (
           <SelectionCard
             key={section.id}

@@ -237,9 +237,9 @@ export function StudentAttendance({ sessionToken }: { sessionToken: string }) {
   if (loadFailed) {
     return (
       <main className="grid min-h-screen place-items-center px-4 py-8">
-        <section className="w-full max-w-lg rounded border border-line bg-white p-6 text-center shadow-soft">
+        <section className="w-full max-w-lg rounded border border-line bg-white p-4 text-center shadow-soft sm:p-6">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-pool">CBA Attendance Log</p>
-          <h1 className="mt-3 font-display text-4xl font-semibold text-ink">Attendance link unavailable</h1>
+          <h1 className="mt-3 font-display text-2xl font-semibold text-ink sm:text-4xl">Attendance link unavailable</h1>
           <p className="mt-3 text-base font-semibold leading-7 text-graphite">
             This attendance session was deleted, closed, or cannot be found. Please ask your teacher for a new QR link.
           </p>
@@ -252,9 +252,9 @@ export function StudentAttendance({ sessionToken }: { sessionToken: string }) {
   if (success) {
     return (
       <main className="grid min-h-screen place-items-center px-4 py-8">
-        <section className="w-full max-w-lg rounded border border-ledger bg-white p-6 text-center shadow-soft">
+        <section className="w-full max-w-lg rounded border border-ledger bg-white p-4 text-center shadow-soft sm:p-6">
           <CheckCircle2 className="mx-auto text-ledger" size={54} />
-          <h1 className="mt-4 font-display text-4xl font-semibold">Attendance recorded</h1>
+          <h1 className="mt-4 font-display text-2xl font-semibold sm:text-4xl">Attendance recorded</h1>
           <div className="mt-5 grid gap-2 rounded border border-line bg-paper p-4 text-left">
             <p>
               <span className="font-semibold">Name:</span> {success.student.full_name}
@@ -275,11 +275,11 @@ export function StudentAttendance({ sessionToken }: { sessionToken: string }) {
   }
 
   return (
-    <main className="min-h-screen px-4 py-6">
+    <main className="min-h-screen px-3 py-4 sm:px-4 sm:py-6">
       <section className="mx-auto w-full max-w-2xl">
         <div className="mb-4 rounded border border-line bg-white p-4 shadow-soft">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-pool">CBA Attendance Log</p>
-          <h1 className="mt-2 font-display text-4xl font-semibold">{session?.class_name || "Class attendance"}</h1>
+          <h1 className="mt-2 font-display text-[clamp(1.75rem,8vw,2.25rem)] font-semibold sm:text-4xl">{session?.class_name || "Class attendance"}</h1>
           <p className="mt-1 text-sm font-semibold text-graphite">{session?.section || "Attendance"}</p>
           <div className="mt-4 grid gap-2 text-sm text-graphite sm:grid-cols-2">
             <p>
@@ -330,7 +330,7 @@ export function StudentAttendance({ sessionToken }: { sessionToken: string }) {
           ) : null}
 
           <div className="grid gap-3">
-            <div className="grid min-h-64 place-items-center overflow-hidden rounded border border-line bg-ink sm:min-h-80">
+            <div className="grid min-h-48 place-items-center overflow-hidden rounded border border-line bg-ink sm:min-h-72 md:min-h-80">
               {photo ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={photo} alt="Captured attendance preview" className="max-h-[60vh] w-full object-contain" />

@@ -4,8 +4,8 @@ export function SkeletonBlock({ className = "" }: { className?: string }) {
 
 function SelectionCardSkeleton() {
   return (
-    <article className="cockpit-card flex min-h-[260px] flex-col overflow-hidden md:min-h-[330px] lg:min-h-[360px]" aria-hidden="true">
-      <div className="flex flex-1 flex-col justify-between gap-9 p-6 md:p-7">
+    <article className="cockpit-card flex min-h-[190px] flex-col overflow-hidden md:min-h-[260px] lg:min-h-[300px] 2xl:min-h-[330px]" aria-hidden="true">
+      <div className="flex flex-1 flex-col justify-between gap-5 p-4 sm:p-5 md:gap-7 md:p-6 2xl:p-7">
         <div className="flex min-h-11 items-center justify-between gap-4">
           <SkeletonBlock className="h-4 w-24" />
           <SkeletonBlock className="h-4 w-16" />
@@ -29,7 +29,7 @@ export function SectionWorkspaceSkeleton() {
         <SkeletonBlock className="h-[clamp(2.7rem,12vw,4.25rem)] w-[min(80%,26rem)] md:mx-auto lg:h-[4.5rem]" />
         <SkeletonBlock className="mt-3 h-7 w-[min(75%,20rem)] md:mx-auto md:mt-5" />
       </div>
-      <section className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-7 lg:grid-cols-3 xl:gap-8">
+      <section className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3 xl:gap-6 2xl:gap-8">
         <SelectionCardSkeleton />
         <SelectionCardSkeleton />
         <article className="cockpit-card cockpit-add-card hidden min-h-[330px] flex-col justify-between gap-7 overflow-hidden border-dashed p-6 md:col-span-2 md:flex md:p-7 lg:col-span-1 lg:min-h-[360px]" aria-hidden="true">
