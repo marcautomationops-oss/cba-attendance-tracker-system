@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { AlertTriangle, ArrowRight, Trash2, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 type DeleteControlModalProps = {
   entityType: "section" | "subject";
@@ -13,11 +14,22 @@ type DeleteControlModalProps = {
 };
 
 export function DeleteControlModal({ entityType, name, openHref, deleting, onClose, onDelete }: DeleteControlModalProps) {
+  const [confirmation, setConfirmation] = useState("");
   const title = entityType === "section" ? `Delete ${name}?` : `Delete ${name}?`;
   const body =
     entityType === "section"
       ? "This will delete the section, its subjects, linked students, attendance sessions, attendance records, profile photos, and proof photos. This cannot be undone."
       : "This will delete the subject, student links for this subject, attendance sessions, attendance records, and proof photos for this subject. This cannot be undone.";
+
+  useEffect(() => {
+    setConfirmation("");
+  }, [entityType, name]);
+
+  function close() {
+    if (deleting) return;
+    setConfirmation("");
+    onClose();
+  }
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-[#061426]/42 px-3 py-4 sm:px-4 sm:py-8">
@@ -27,7 +39,7 @@ export function DeleteControlModal({ entityType, name, openHref, deleting, onClo
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#335f97]">{entityType} controls</p>
             <h2 className="mt-2 font-display text-3xl font-extrabold tracking-[-0.035em] text-[#071529]">{name}</h2>
           </div>
-          <button type="button" onClick={onClose} className="focus-ring grid h-11 w-11 shrink-0 place-items-center border border-[#9fb9d6]/60 text-[#335f97]" title="Close">
+          <button type="button" onClick={close} disabled={deleting} className="focus-ring grid h-11 w-11 shrink-0 place-items-center border border-[#9fb9d6]/60 text-[#335f97] disabled:opacity-50" title="Close">
             <X size={18} />
           </button>
         </div>
@@ -46,10 +58,21 @@ export function DeleteControlModal({ entityType, name, openHref, deleting, onClo
                 <p className="mt-2 text-sm leading-6 text-[#475569]">{body}</p>
               </div>
             </div>
+            <label className="mt-4 grid gap-2 text-sm font-bold text-[#7f1d1d]">
+              Type DELETE to confirm
+              <input
+                value={confirmation}
+                onChange={(event) => setConfirmation(event.target.value)}
+                disabled={deleting}
+                autoComplete="off"
+                className="focus-ring min-h-12 border border-red-300 bg-white px-3 font-mono text-base font-bold uppercase text-[#071529] disabled:bg-red-100"
+                placeholder="DELETE"
+              />
+            </label>
             <button
               type="button"
               onClick={onDelete}
-              disabled={deleting}
+              disabled={deleting || confirmation !== "DELETE"}
               className="focus-ring mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 bg-[#c81e1e] px-4 py-3 text-sm font-bold uppercase tracking-[0.06em] text-white disabled:opacity-60"
             >
               <Trash2 size={17} />

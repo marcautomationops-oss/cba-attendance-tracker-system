@@ -3,6 +3,7 @@
 import {
   BarChart3,
   Bell,
+  BookOpen,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
@@ -13,6 +14,7 @@ import {
   History,
   Loader2,
   Pencil,
+  PanelLeftOpen,
   Play,
   Plus,
   Radio,
@@ -26,6 +28,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ButtonHTMLAttributes, type ComponentType, type FormEvent, type ReactNode } from "react";
 import { AttendanceRecordRows } from "@/components/AttendanceRecordRows";
+import { AttendanceLogbook } from "@/components/AttendanceLogbook";
 import { LiveAttendancePanel } from "@/components/LiveAttendancePanel";
 import { AlertsSkeleton, AnalyticsSkeleton, AttendanceRowsSkeleton, SkeletonBlock } from "@/components/LoadingSkeletons";
 import { QRCodeDisplay } from "@/components/QRCodeDisplay";
@@ -38,7 +41,7 @@ type Created = {
   attendanceLink: string;
 };
 
-type Tab = "current" | "history" | "analytics" | "alerts";
+type Tab = "current" | "logbook" | "history" | "analytics" | "alerts";
 
 type ReviewRow = {
   row_number: number;
@@ -158,12 +161,37 @@ type AlertTrigger = "late" | "absent";
 
 const tabs: { id: Tab; label: string; icon: ComponentType<{ size?: number }> }[] = [
   { id: "current", label: "Current", icon: Radio },
+  { id: "logbook", label: "Logbook", icon: BookOpen },
   { id: "history", label: "History", icon: History },
   { id: "analytics", label: "Analytics", icon: BarChart3 },
   { id: "alerts", label: "Alerts", icon: Bell }
 ];
 
-const validTabs = new Set<Tab>(["current", "history", "analytics", "alerts"]);
+const validTabs = new Set<Tab>(["current", "logbook", "history", "analytics", "alerts"]);
+
+function WorkspaceNavigation({ tab, onSelect }: { tab: Tab; onSelect: (tab: Tab) => void }) {
+  return (
+    <nav className="grid gap-2">
+      {tabs.map((item) => {
+        const Icon = item.icon;
+        const active = tab === item.id;
+        return (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onSelect(item.id)}
+            className={`focus-ring inline-flex min-h-12 w-full items-center gap-3 rounded px-4 py-3 text-left text-sm font-bold transition ${
+              active ? "bg-white text-ledger" : "text-white/75 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            <Icon size={18} />
+            {item.label}
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
 
 function initials(name: string) {
   return name
@@ -242,6 +270,7 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
   const [tab, setTab] = useState<Tab>("current");
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [logbookDirty, setLogbookDirty] = useState(false);
   const [section, setSection] = useState<Section | null>(null);
   const [subject, setSubject] = useState<Subject | null>(null);
   const [sessions, setSessions] = useState<AttendanceSession[]>([]);
@@ -294,6 +323,7 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
 
   const setWorkspace = useCallback(
     (nextTab: Tab, sessionId?: string | null) => {
+      if (tab === "logbook" && nextTab !== "logbook" && logbookDirty && !window.confirm("Discard unsaved Logbook changes?")) return;
       setTab(nextTab);
       setSelectedSessionId(sessionId || null);
       const params = new URLSearchParams();
@@ -301,7 +331,7 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
       if (nextTab === "history" && sessionId) params.set("session", sessionId);
       router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     },
-    [pathname, router]
+    [logbookDirty, pathname, router, tab]
   );
 
   useEffect(() => {
@@ -778,19 +808,25 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
         </div>
       </section>
 
-      {!sidebarOpen ? (
-        <button
-          type="button"
-          aria-label="Open workspace menu"
-          onClick={() => setSidebarOpen(true)}
-          className="focus-ring fixed left-0 top-1/2 z-40 flex h-16 w-11 -translate-y-1/2 items-center justify-center rounded-r bg-ledger text-white shadow-soft transition hover:bg-ink"
-        >
-          <ChevronRight size={22} />
-        </button>
-      ) : null}
+      <div className="grid min-w-0 gap-4 lg:grid-cols-[210px_minmax(0,1fr)] lg:items-start lg:gap-6">
+        <div className="lg:sticky lg:top-6">
+          <button
+            type="button"
+            aria-label="Open workspace menu"
+            onClick={() => setSidebarOpen(true)}
+            className="focus-ring inline-flex min-h-12 w-full items-center justify-center gap-2 rounded bg-ledger px-4 font-bold text-white shadow-sm transition hover:bg-ink lg:hidden"
+          >
+            <PanelLeftOpen size={19} />
+            Workspace menu
+          </button>
+          <aside className="hidden border border-white/10 bg-ledger p-3 text-white shadow-sm lg:block">
+            <p className="mb-3 px-3 pt-2 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-white/55">Workspace</p>
+            <WorkspaceNavigation tab={tab} onSelect={(nextTab) => setWorkspace(nextTab)} />
+          </aside>
+        </div>
 
       {sidebarOpen ? (
-        <div className="fixed inset-0 z-50">
+        <div className="fixed inset-0 z-50 lg:hidden">
           <button type="button" aria-label="Close menu" onClick={() => setSidebarOpen(false)} className="absolute inset-0 bg-ink/30" />
           <aside className="relative flex h-full w-full max-w-[300px] flex-col bg-ledger p-5 text-white shadow-soft">
             <div className="mb-7 flex items-center justify-between">
@@ -799,28 +835,13 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
                 <X size={20} />
               </button>
             </div>
-            <nav className="grid gap-3">
-              {tabs.map((item) => {
-                const Icon = item.icon;
-                const active = tab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => {
-                      setWorkspace(item.id);
-                      setSidebarOpen(false);
-                    }}
-                    className={`focus-ring inline-flex w-full items-center gap-3 rounded px-4 py-4 text-left text-sm font-bold transition ${
-                      active ? "bg-white text-ledger" : "text-white/75 hover:bg-white/10 hover:text-white"
-                    }`}
-                  >
-                    <Icon size={18} />
-                    {item.label}
-                  </button>
-                );
-              })}
-            </nav>
+            <WorkspaceNavigation
+              tab={tab}
+              onSelect={(nextTab) => {
+                setWorkspace(nextTab);
+                setSidebarOpen(false);
+              }}
+            />
           </aside>
         </div>
       ) : null}
@@ -855,6 +876,14 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
           />
         ) : null}
 
+        {tab === "logbook" ? (
+          <AttendanceLogbook
+            subjectId={subjectId}
+            onDirtyChange={setLogbookDirty}
+            onReviewAlerts={() => setWorkspace("alerts")}
+          />
+        ) : null}
+
         {tab === "history" ? (
           <HistoryTab
             sessions={historySessions}
@@ -886,6 +915,7 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
           />
         ) : null}
       </section>
+      </div>
 
       {importRows ? (
         <ReviewModal title="Review Excel import" saving={savingImport} onClose={() => setImportRows(null)} onConfirm={saveImportRows}>

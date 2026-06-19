@@ -52,11 +52,13 @@ function trendForStudent(closedSessions: AttendanceSession[], recordBySession: M
   if (!older.length || !recent.length) return "Stable";
 
   function percentFor(sessions: AttendanceSession[]) {
-    const attended = sessions.filter((session) => {
+    const earnedPoints = sessions.reduce((total, session) => {
       const record = recordBySession.get(session.id);
-      return record && ["on_time", "late", "excused", "sick", "leave"].includes(record.status);
-    }).length;
-    return Math.round((attended / sessions.length) * 100);
+      if (record?.status === "on_time") return total + 1;
+      if (record?.status === "late") return total + 0.5;
+      return total;
+    }, 0);
+    return Math.round((earnedPoints / sessions.length) * 100);
   }
 
   const change = percentFor(recent) - percentFor(older);
@@ -199,8 +201,8 @@ export async function GET(request: Request, context: Context) {
     });
     const alertLate = alertPeriodRecords.filter((record) => record.status === "late").length;
     const alertAbsent = alertPeriodRecords.filter((record) => record.status === "absent").length;
-    const attended = onTime + late + excused;
-    const attendancePercentage = closedSessions.length ? Math.round((attended / closedSessions.length) * 100) : 0;
+    const earnedPoints = onTime + late * 0.5;
+    const attendancePercentage = closedSessions.length ? Math.round((earnedPoints / closedSessions.length) * 100) : 0;
     const lastStatus = (list[0]?.status || (typedSessions.length ? "absent" : "absent")) as AttendanceStatus;
     const risk = riskForStudent(attendancePercentage, absent, late, closedSessions.length > 0);
     const action = actionForRisk(risk);
@@ -250,7 +252,7 @@ export async function GET(request: Request, context: Context) {
   );
 
   const totalPossibleAttendance = closedSessions.length * students.length;
-  const totalAttended = individual.reduce((sum, student) => sum + student.on_time_count + student.late_count + student.excused_count, 0);
+  const totalEarnedPoints = individual.reduce((sum, student) => sum + student.on_time_count + student.late_count * 0.5, 0);
   const totalLate = individual.reduce((sum, student) => sum + student.late_count, 0);
   const totalAbsent = individual.reduce((sum, student) => sum + student.absent_count, 0);
   const studentsAtRisk = individual.filter((student) => student.risk !== "Good").length;
@@ -265,13 +267,13 @@ export async function GET(request: Request, context: Context) {
   });
   const leaders = {
     most_present: [...individual]
-      .sort((a, b) => b.on_time_count + b.late_count + b.excused_count - (a.on_time_count + a.late_count + a.excused_count))
+      .sort((a, b) => b.on_time_count + b.late_count - (a.on_time_count + a.late_count))
       .slice(0, 3)
       .map((student) => ({
         student_id: student.student_id,
         full_name: student.full_name,
-        value: student.on_time_count + student.late_count + student.excused_count,
-        label: `${student.on_time_count + student.late_count + student.excused_count}/${closedSessions.length} sessions`
+        value: student.on_time_count + student.late_count,
+        label: `${student.on_time_count + student.late_count}/${closedSessions.length} sessions`
       })),
     most_late: [...individual]
       .sort((a, b) => b.late_count - a.late_count)
@@ -300,7 +302,7 @@ export async function GET(request: Request, context: Context) {
       absent: todayAbsent
     },
     summary: {
-      class_attendance: totalPossibleAttendance ? Math.round((totalAttended / totalPossibleAttendance) * 100) : 0,
+      class_attendance: totalPossibleAttendance ? Math.round((totalEarnedPoints / totalPossibleAttendance) * 100) : 0,
       total_sessions: closedSessions.length,
       students_at_risk: studentsAtRisk,
       late_count: totalLate,
