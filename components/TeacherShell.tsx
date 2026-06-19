@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, MoreVertical, SlidersHorizontal } from "lucide-react";
+import { FileSpreadsheet, LogOut, MoreVertical, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { LiveClock } from "@/components/LiveClock";
 
@@ -19,6 +19,9 @@ export function TeacherShell({ children }: { children: React.ReactNode }) {
           </Link>
 
           <div className="relative flex shrink-0 items-center gap-2">
+            <Link href="/exports" className="focus-ring grid h-11 w-11 place-items-center rounded border border-transparent text-[#f7fbff] transition hover:border-[#9fb9d6]/28 hover:bg-white/[0.04]" aria-label="Export attendance">
+              <FileSpreadsheet size={24} />
+            </Link>
             <Link href="/settings" className="focus-ring grid h-11 w-11 place-items-center rounded border border-transparent text-[#f7fbff] transition hover:border-[#9fb9d6]/28 hover:bg-white/[0.04]" aria-label="Settings">
               <SlidersHorizontal size={24} />
             </Link>
@@ -76,6 +79,10 @@ export function TeacherShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-2 justify-self-end lg:gap-3">
+            <Link href="/exports" className="focus-ring inline-flex min-h-11 items-center gap-2 border border-[#9fb9d6]/24 bg-white/[0.025] px-3 py-2 text-sm font-medium text-[#b8cbe2]/76 transition hover:border-[#9fb9d6]/42 hover:bg-white/[0.055] hover:text-[#b8cbe2]/88 lg:px-4 lg:py-3">
+              <FileSpreadsheet size={16} />
+              Export
+            </Link>
             <Link href="/settings" className="focus-ring inline-flex min-h-11 items-center gap-2 border border-[#9fb9d6]/24 bg-white/[0.025] px-3 py-2 text-sm font-medium text-[#b8cbe2]/76 transition hover:border-[#9fb9d6]/42 hover:bg-white/[0.055] hover:text-[#b8cbe2]/88 lg:px-4 lg:py-3">
               <SlidersHorizontal size={16} />
               Settings

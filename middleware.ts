@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { AUTH_COOKIE, validateTeacherSession } from "@/lib/auth";
 import { isSameOriginRequest } from "@/lib/security";
 
-const protectedPages = ["/dashboard", "/sections", "/settings"];
+const protectedPages = ["/dashboard", "/sections", "/exports", "/settings"];
 const publicApiRoutes = ["/api/login", "/api/logout"];
 
 function isProtectedPage(path: string) {
@@ -37,5 +37,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/sections/:path*", "/settings/:path*", "/api/:path*"]
+  matcher: ["/dashboard/:path*", "/sections/:path*", "/exports/:path*", "/settings/:path*", "/api/:path*"]
 };
