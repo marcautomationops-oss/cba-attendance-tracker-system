@@ -185,7 +185,7 @@ export function AttendanceRecordRows({
           const expanded = expandedStudentId === record.student_id;
           const proofDeleted = Boolean(record.photo_deleted_at || record.notes?.toLowerCase().includes("proof photo deleted"));
           return (
-            <div key={record.student_id} className="overflow-hidden rounded border border-line bg-paper">
+            <div key={record.student_id} className="overflow-visible rounded border border-line bg-paper">
               <div className="md:hidden">
                 <button
                   type="button"
