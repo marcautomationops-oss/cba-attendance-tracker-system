@@ -796,7 +796,10 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
     <div className="grid min-w-0 gap-4 pb-20 md:gap-6 md:pb-0">
       <section className="flex min-w-0 flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div className="min-w-0">
-          <Link href={`/sections/${section.id}`} className="focus-ring inline-flex min-h-11 max-w-full items-center gap-2 rounded px-1 py-1 text-sm font-bold uppercase text-graphite hover:text-pool">
+          <Link
+            href={`/sections/${section.id}`}
+            className="focus-ring inline-flex min-h-11 max-w-full items-center gap-2 rounded border border-[#9fb9d6] bg-white/75 px-3 py-2 text-sm font-bold uppercase text-[#526b88] shadow-[0_6px_18px_rgba(7,21,41,0.06)] backdrop-blur-sm transition hover:border-[#2f6fea] hover:bg-white hover:text-[#2f6fea]"
+          >
             <ChevronLeft size={16} />
             <span className="min-w-0 break-words">{section.name}</span>
           </Link>
@@ -1272,7 +1275,11 @@ function HistoryTab({
       <section className="min-w-0 rounded border border-line bg-white p-4 shadow-sm sm:p-5 2xl:p-7">
         <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <button type="button" onClick={back} className="focus-ring mb-3 inline-flex min-h-11 items-center gap-2 rounded px-1 py-1 text-sm font-bold text-graphite hover:text-pool">
+            <button
+              type="button"
+              onClick={back}
+              className="focus-ring mb-3 inline-flex min-h-11 items-center gap-2 rounded border border-[#9fb9d6] bg-white/75 px-3 py-2 text-sm font-bold text-[#526b88] shadow-[0_6px_18px_rgba(7,21,41,0.06)] backdrop-blur-sm transition hover:border-[#2f6fea] hover:bg-white hover:text-[#2f6fea]"
+            >
               <ChevronLeft size={16} />
               History
             </button>
