@@ -23,9 +23,7 @@ async function studentsForSession(session: AttendanceSession) {
       if (error) throw new Error(error.message);
       students = (data || []) as Student[];
     }
-  }
-
-  if (!students.length) {
+  } else {
     let query = supabase.from("students").select("*").eq("is_active", true).order("full_name");
     if (session.section) query = query.eq("section", session.section);
     const { data, error } = await query;

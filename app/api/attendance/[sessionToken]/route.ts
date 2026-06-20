@@ -53,7 +53,8 @@ export async function GET(request: Request, context: Context) {
   let students: Pick<Student, "id" | "full_name" | "section">[] = [];
 
   if (session.subject_id) {
-    const { data: links } = await supabase.from("subject_students").select("student_id").eq("subject_id", session.subject_id);
+    const { data: links, error: linksError } = await supabase.from("subject_students").select("student_id").eq("subject_id", session.subject_id);
+    if (linksError) return jsonError(linksError.message, 500);
     if (links?.length) {
       const { data, error } = await supabase
         .from("students")
@@ -67,9 +68,7 @@ export async function GET(request: Request, context: Context) {
       if (error) return jsonError(error.message, 500);
       students = data || [];
     }
-  }
-
-  if (!students.length) {
+  } else {
     let studentsQuery = supabase
       .from("students")
       .select("id, full_name, section")

@@ -26,10 +26,11 @@ export async function getSessionRecords(sessionId: string): Promise<SessionRecor
   const attendanceClosed = Date.now() > new Date(typedSession.close_time).getTime();
 
   if (typedSession.subject_id) {
-    const { data: links } = await supabase
+    const { data: links, error: linksError } = await supabase
       .from("subject_students")
       .select("student_id")
       .eq("subject_id", typedSession.subject_id);
+    if (linksError) throw new Error(linksError.message);
 
     if (links?.length) {
       const { data: subjectStudents, error: subjectStudentsError } = await supabase
@@ -45,9 +46,7 @@ export async function getSessionRecords(sessionId: string): Promise<SessionRecor
       if (subjectStudentsError) throw new Error(subjectStudentsError.message);
       students = (subjectStudents || []) as Student[];
     }
-  }
-
-  if (!students.length) {
+  } else {
     let studentsQuery = supabase.from("students").select("*").eq("is_active", true).order("full_name");
     if (typedSession.section) studentsQuery = studentsQuery.eq("section", typedSession.section);
     const { data, error } = await studentsQuery;
