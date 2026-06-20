@@ -3,6 +3,8 @@ import ExcelJS from "exceljs";
 import { cleanText, jsonError, parseJson, requireTeacher } from "@/lib/api";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
+export const runtime = "nodejs";
+
 type Context = {
   params: Promise<{ id: string }>;
 };
@@ -21,10 +23,17 @@ type SaveBody = {
   rows?: ReviewRow[];
 };
 
+const blockingIssues = new Set(["Missing student ID", "Missing full name", "Duplicate in file"]);
+const existingStudentNotice = "Existing student ID will be updated";
+
 function value(row: Record<string, unknown>, aliases: string[]) {
   const entries = Object.entries(row);
   const found = entries.find(([key]) => aliases.some((alias) => key.trim().toLowerCase() === alias));
   return cleanText(found?.[1]);
+}
+
+function hasBlockingIssue(row: ReviewRow) {
+  return row.issues.some((issue) => blockingIssues.has(issue));
 }
 
 async function subjectContext(subjectId: string) {
@@ -43,106 +52,116 @@ async function subjectContext(subjectId: string) {
 export async function POST(request: Request, context: Context) {
   if (!(await requireTeacher(request))) return jsonError("Teacher login required.", 401);
 
-  const { id } = await context.params;
-  const contentType = request.headers.get("content-type") || "";
-  const supabase = getSupabaseAdmin();
-  const ctx = await subjectContext(id);
-  if (!ctx) return jsonError("Subject was not found.", 404);
+  try {
+    const { id } = await context.params;
+    const contentType = request.headers.get("content-type") || "";
+    const supabase = getSupabaseAdmin();
+    const ctx = await subjectContext(id);
+    if (!ctx) return jsonError("Subject was not found.", 404);
 
-  if (contentType.includes("application/json")) {
-    const body = await parseJson<SaveBody>(request);
-    const rows = (body?.rows || []).filter((row) => row.save && !row.issues.length);
-    if (!rows.length) return jsonError("No valid reviewed rows were selected.");
+    if (contentType.includes("application/json")) {
+      const body = await parseJson<SaveBody>(request);
+      const rows = (body?.rows || []).filter((row) => row.save && !hasBlockingIssue(row));
+      if (!rows.length) return jsonError("No valid reviewed rows were selected.");
 
-    const saved = [];
-    for (const row of rows) {
-      const studentPayload: Record<string, string | boolean | null> = {
-        student_number: row.student_number,
-        full_name: row.full_name,
-        section: ctx.sectionName,
-        is_active: true,
-        updated_at: new Date().toISOString()
-      };
-      if (row.contact_number) studentPayload.contact_number = row.contact_number;
+      const saved = [];
+      for (const row of rows) {
+        const studentPayload: Record<string, string | boolean | null> = {
+          student_number: row.student_number,
+          full_name: row.full_name,
+          section: ctx.sectionName,
+          is_active: true,
+          updated_at: new Date().toISOString()
+        };
+        if (row.contact_number) studentPayload.contact_number = row.contact_number;
 
-      const { data: student, error: studentError } = await supabase
-        .from("students")
-        .upsert(studentPayload, { onConflict: "student_number" })
-        .select("*")
-        .single();
+        const { data: student, error: studentError } = await supabase
+          .from("students")
+          .upsert(studentPayload, { onConflict: "student_number" })
+          .select("*")
+          .single();
 
-      if (studentError) {
-        if (studentError.message.includes("contact_number")) {
-          return jsonError("Run the updated Supabase schema to enable optional contact numbers for SMS alerts.", 500);
+        if (studentError) {
+          if (studentError.message.includes("contact_number")) {
+            return jsonError("Run the updated Supabase schema to enable optional contact numbers for SMS alerts.", 500);
+          }
+          return jsonError(studentError.message, 500);
         }
-        return jsonError(studentError.message, 500);
+        const { error: linkError } = await supabase
+          .from("subject_students")
+          .upsert({ subject_id: id, student_id: student.id }, { onConflict: "subject_id,student_id" });
+        if (linkError) return jsonError(linkError.message, 500);
+        saved.push(student);
       }
-      const { error: linkError } = await supabase
-        .from("subject_students")
-        .upsert({ subject_id: id, student_id: student.id }, { onConflict: "subject_id,student_id" });
-      if (linkError) return jsonError(linkError.message, 500);
-      saved.push(student);
+
+      return NextResponse.json({ saved });
     }
 
-    return NextResponse.json({ saved });
-  }
+    const form = await request.formData();
+    const file = form.get("file");
+    if (!(file instanceof File)) return jsonError("Upload an .xlsx file.");
+    if (!file.name.toLowerCase().endsWith(".xlsx")) return jsonError("Excel import accepts .xlsx files only.");
+    if (file.size > 2_000_000) return jsonError("Excel file must be 2 MB or smaller.");
 
-  const form = await request.formData();
-  const file = form.get("file");
-  if (!(file instanceof File)) return jsonError("Upload an .xlsx file.");
-  if (!file.name.toLowerCase().endsWith(".xlsx")) return jsonError("Excel import accepts .xlsx files only.");
-  if (file.size > 2_000_000) return jsonError("Excel file must be 2 MB or smaller.");
-
-  const bytes = await file.arrayBuffer();
-  const workbook = new ExcelJS.Workbook();
-  const workbookBytes = Buffer.from(bytes) as unknown as Parameters<typeof workbook.xlsx.load>[0];
-  await workbook.xlsx.load(workbookBytes);
-  const sheet = workbook.worksheets[0];
-  if (!sheet) return jsonError("The workbook does not contain a worksheet.");
-  if (sheet.actualRowCount > 2_001) return jsonError("Excel import supports up to 2,000 students at a time.");
-
-  const headers = sheet.getRow(1).values as ExcelJS.CellValue[];
-  const rows: Record<string, unknown>[] = [];
-  sheet.eachRow((row, rowNumber) => {
-    if (rowNumber === 1) return;
-    const record: Record<string, unknown> = {};
-    for (let column = 1; column < headers.length; column += 1) {
-      const header = String(headers[column] || "").trim();
-      if (header) record[header] = row.getCell(column).text;
+    const bytes = await file.arrayBuffer();
+    const workbook = new ExcelJS.Workbook();
+    const workbookBytes = Buffer.from(bytes) as unknown as Parameters<typeof workbook.xlsx.load>[0];
+    try {
+      await workbook.xlsx.load(workbookBytes);
+    } catch {
+      return jsonError("Excel file could not be read. Re-save it as a valid .xlsx file and try again.", 400);
     }
-    rows.push(record);
-  });
 
-  const seen = new Set<string>();
-  const reviewRows: ReviewRow[] = rows.map((row, index) => {
-    const student_number = value(row, ["student id", "student number", "student no", "student_number", "id"]);
-    const full_name = value(row, ["full name", "name", "student name", "fullname"]);
-    const contact_number = value(row, ["contact number", "contact", "phone", "mobile number", "mobile"]) || null;
-    const issues: string[] = [];
+    const sheet = workbook.worksheets[0];
+    if (!sheet) return jsonError("The workbook does not contain a worksheet.");
+    if (sheet.actualRowCount > 2_001) return jsonError("Excel import supports up to 2,000 students at a time.");
 
-    if (!student_number) issues.push("Missing student ID");
-    if (!full_name) issues.push("Missing full name");
-    if (student_number && seen.has(student_number.toLowerCase())) issues.push("Duplicate in file");
-    if (student_number) seen.add(student_number.toLowerCase());
-
-    return {
-      row_number: index + 2,
-      student_number,
-      full_name,
-      contact_number,
-      issues,
-      save: issues.length === 0
-    };
-  });
-
-  const existingNumbers = reviewRows.map((row) => row.student_number).filter(Boolean);
-  if (existingNumbers.length) {
-    const { data: existing } = await supabase.from("students").select("student_number").in("student_number", existingNumbers);
-    const existingSet = new Set((existing || []).map((row) => row.student_number.toLowerCase()));
-    reviewRows.forEach((row) => {
-      if (existingSet.has(row.student_number.toLowerCase())) row.issues.push("Existing student ID will be updated");
+    const headers = sheet.getRow(1).values as ExcelJS.CellValue[];
+    const rows: Record<string, unknown>[] = [];
+    sheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return;
+      const record: Record<string, unknown> = {};
+      for (let column = 1; column < headers.length; column += 1) {
+        const header = String(headers[column] || "").trim();
+        if (header) record[header] = row.getCell(column).text;
+      }
+      rows.push(record);
     });
-  }
 
-  return NextResponse.json({ rows: reviewRows });
+    const seen = new Set<string>();
+    const reviewRows: ReviewRow[] = rows.map((row, index) => {
+      const student_number = value(row, ["student id", "student number", "student no", "student_number", "id"]);
+      const full_name = value(row, ["full name", "name", "student name", "fullname"]);
+      const contact_number = value(row, ["contact number", "contact", "phone", "mobile number", "mobile"]) || null;
+      const issues: string[] = [];
+
+      if (!student_number) issues.push("Missing student ID");
+      if (!full_name) issues.push("Missing full name");
+      if (student_number && seen.has(student_number.toLowerCase())) issues.push("Duplicate in file");
+      if (student_number) seen.add(student_number.toLowerCase());
+
+      return {
+        row_number: index + 2,
+        student_number,
+        full_name,
+        contact_number,
+        issues,
+        save: issues.length === 0
+      };
+    });
+
+    const existingNumbers = reviewRows.map((row) => row.student_number).filter(Boolean);
+    if (existingNumbers.length) {
+      const { data: existing, error: existingError } = await supabase.from("students").select("student_number").in("student_number", existingNumbers);
+      if (existingError) return jsonError(existingError.message, 500);
+      const existingSet = new Set((existing || []).map((row) => row.student_number.toLowerCase()));
+      reviewRows.forEach((row) => {
+        if (existingSet.has(row.student_number.toLowerCase()) && !hasBlockingIssue(row)) row.issues.push(existingStudentNotice);
+      });
+    }
+
+    return NextResponse.json({ rows: reviewRows });
+  } catch (error) {
+    return jsonError(error instanceof Error ? error.message : "Excel import failed.", 500);
+  }
 }

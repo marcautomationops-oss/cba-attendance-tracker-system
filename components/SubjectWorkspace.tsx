@@ -53,6 +53,12 @@ type ReviewRow = {
   save: boolean;
 };
 
+const importBlockingIssues = new Set(["Missing student ID", "Missing full name", "Duplicate in file"]);
+
+function hasImportBlockingIssue(row: ReviewRow) {
+  return row.issues.some((issue) => importBlockingIssues.has(issue));
+}
+
 type PhotoReview = {
   matched: { student_id: string; student_number: string; full_name: string; filename: string; data_url: string }[];
   unmatched: { filename: string }[];
@@ -918,26 +924,31 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
         <ReviewModal title="Review Excel import" saving={savingImport} onClose={() => setImportRows(null)} onConfirm={saveImportRows}>
           <div className="grid max-h-[60vh] gap-2 overflow-auto">
             {importRows.map((row, index) => (
-              <label key={`${row.row_number}-${index}`} className="grid gap-2 rounded border border-line bg-paper p-3 md:grid-cols-[auto_1fr_auto] md:items-center">
-                <input
-                  type="checkbox"
-                  checked={row.save}
-                  disabled={row.issues.length > 0}
-                  onChange={(event) => {
-                    const next = [...importRows];
-                    next[index] = { ...row, save: event.target.checked };
-                    setImportRows(next);
-                  }}
-                  className="h-5 w-5"
-                />
-                <div>
-                  <p className="font-bold text-ink">{row.full_name || "Missing name"}</p>
-                  <p className="font-mono text-xs text-graphite">{row.student_number || "Missing ID"}</p>
-                </div>
-                <p className={row.issues.length ? "text-sm font-bold text-signal" : "text-sm font-bold text-ledger"}>
-                  {row.issues.length ? row.issues.join(", ") : "Ready"}
-                </p>
-              </label>
+              (() => {
+                const blocked = hasImportBlockingIssue(row);
+                return (
+                  <label key={`${row.row_number}-${index}`} className="grid gap-2 rounded border border-line bg-paper p-3 md:grid-cols-[auto_1fr_auto] md:items-center">
+                    <input
+                      type="checkbox"
+                      checked={row.save}
+                      disabled={blocked}
+                      onChange={(event) => {
+                        const next = [...importRows];
+                        next[index] = { ...row, save: event.target.checked };
+                        setImportRows(next);
+                      }}
+                      className="h-5 w-5"
+                    />
+                    <div>
+                      <p className="font-bold text-ink">{row.full_name || "Missing name"}</p>
+                      <p className="font-mono text-xs text-graphite">{row.student_number || "Missing ID"}</p>
+                    </div>
+                    <p className={blocked ? "text-sm font-bold text-signal" : "text-sm font-bold text-ledger"}>
+                      {row.issues.length ? row.issues.join(", ") : "Ready"}
+                    </p>
+                  </label>
+                );
+              })()
             ))}
           </div>
         </ReviewModal>
