@@ -97,7 +97,10 @@ export function SectionWorkspace({ sectionId }: { sectionId: string }) {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <Link href="/dashboard" className="focus-ring mb-4 inline-flex min-h-10 items-center gap-2 rounded px-1 py-1 font-mono text-xs font-bold uppercase tracking-[0.16em] text-[#6f8197] hover:text-[#2f6fea] md:mb-6">
+      <Link
+        href="/dashboard"
+        className="focus-ring mb-4 inline-flex min-h-11 items-center gap-2 rounded border border-[#9fb9d6] bg-white/75 px-3 py-2 font-mono text-xs font-bold uppercase tracking-[0.16em] text-[#526b88] shadow-[0_6px_18px_rgba(7,21,41,0.06)] backdrop-blur-sm transition hover:border-[#2f6fea] hover:bg-white hover:text-[#2f6fea] md:mb-6"
+      >
         <ChevronLeft size={16} />
         Sections
       </Link>
