@@ -1,7 +1,7 @@
 "use client";
 
-import { Camera, Check, ChevronDown, Loader2, X } from "lucide-react";
-import { useState } from "react";
+import { Camera, Check, ChevronDown, Images, Loader2, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { statusLabel } from "@/lib/attendance";
 import type { AttendanceStatus, DashboardRecord } from "@/lib/types";
@@ -126,9 +126,54 @@ export function AttendanceRecordRows({
   emptyText?: string;
 }) {
   const [proof, setProof] = useState<DashboardRecord | null>(null);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const proofRecords = useMemo(() => records.filter((record) => Boolean(record.photo_url)), [records]);
+
+  useEffect(() => {
+    if (!proof && !galleryOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setProof(null);
+        setGalleryOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [galleryOpen, proof]);
 
   return (
     <>
+      <div className="mb-4 flex flex-col gap-3 rounded border border-line bg-paper px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded border border-line bg-white text-pool">
+            <Images size={18} />
+          </span>
+          <div>
+            <p className="font-bold text-ink">Proof gallery</p>
+            <p className="text-xs font-semibold text-graphite">
+              {proofRecords.length ? `${proofRecords.length} proof photo${proofRecords.length === 1 ? "" : "s"} available` : "No proof photos available"}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setGalleryOpen(true)}
+          disabled={!proofRecords.length}
+          className="focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded bg-ledger px-4 py-2 text-sm font-bold text-white hover:bg-pool disabled:cursor-not-allowed disabled:bg-line disabled:text-graphite"
+        >
+          <Images size={16} />
+          View all proofs
+        </button>
+      </div>
+
       <div className="grid gap-2">
         {records.map((record) => (
           <div
@@ -162,7 +207,8 @@ export function AttendanceRecordRows({
       </div>
 
       {proof ? (
-        <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/35 px-3 py-4 sm:px-4 sm:py-8">
+        <div className="fixed inset-0 z-[60] grid place-items-center overflow-y-auto bg-ink/55 px-3 py-4 sm:px-4 sm:py-8" role="dialog" aria-modal="true" aria-label={`Proof photo for ${proof.full_name}`}>
+          <button type="button" aria-label="Close proof photo" onClick={() => setProof(null)} className="absolute inset-0 cursor-default" />
           <section className="max-h-[calc(100vh-2rem)] w-full max-w-xl overflow-y-auto rounded border border-line bg-white p-4 shadow-soft sm:p-5">
             <div className="mb-4 flex items-center justify-between gap-4">
               <div>
@@ -177,6 +223,49 @@ export function AttendanceRecordRows({
               // eslint-disable-next-line @next/next/no-img-element
               <img src={proof.photo_url} alt="Attendance proof" className="max-h-[70vh] w-full rounded border border-line object-contain" />
             ) : null}
+          </section>
+        </div>
+      ) : null}
+
+      {galleryOpen ? (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-ink/55 px-3 py-4 sm:px-5 sm:py-8" role="dialog" aria-modal="true" aria-labelledby={`proof-gallery-${sessionId}`}>
+          <button type="button" aria-label="Close proof gallery" onClick={() => setGalleryOpen(false)} className="fixed inset-0 cursor-default" />
+          <section className="relative mx-auto min-h-full w-full max-w-6xl rounded border border-line bg-white p-4 shadow-soft sm:p-6">
+            <div className="mb-5 flex items-start justify-between gap-4 border-b border-line pb-4">
+              <div>
+                <p className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-pool">Session evidence</p>
+                <h3 id={`proof-gallery-${sessionId}`} className="mt-1 text-2xl font-bold text-ink sm:text-3xl">Proof gallery</h3>
+                <p className="mt-1 text-sm font-semibold text-graphite">{proofRecords.length} attendance proof photo{proofRecords.length === 1 ? "" : "s"}</p>
+              </div>
+              <button type="button" onClick={() => setGalleryOpen(false)} className="focus-ring grid min-h-11 min-w-11 place-items-center rounded border border-line bg-paper text-graphite hover:border-pool hover:text-ink" aria-label="Close proof gallery">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {proofRecords.map((record, index) => (
+                <button
+                  key={record.record_id || record.student_id}
+                  type="button"
+                  onClick={() => setProof(record)}
+                  className="focus-ring group min-w-0 overflow-hidden rounded border border-line bg-paper text-left transition hover:-translate-y-0.5 hover:border-pool hover:shadow-soft"
+                  aria-label={`Open proof photo for ${record.full_name}`}
+                >
+                  <div className="relative aspect-[4/3] overflow-hidden bg-line/40">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={record.photo_url || ""} alt={`Attendance proof for ${record.full_name}`} className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]" />
+                    <span className="absolute left-2 top-2 rounded bg-ink/80 px-2 py-1 font-mono text-[10px] font-bold text-white">{String(index + 1).padStart(2, "0")}</span>
+                  </div>
+                  <div className="p-3">
+                    <p className="truncate font-bold text-ink">{record.full_name}</p>
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <span className="truncate font-mono text-xs text-graphite">{record.student_number}</span>
+                      <span className="shrink-0 font-mono text-xs font-bold text-graphite">{exactTime(record.submitted_at)}</span>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
           </section>
         </div>
       ) : null}
