@@ -25,11 +25,15 @@ type SaveBody = {
 
 const blockingIssues = new Set(["Missing student ID", "Missing full name", "Duplicate in file"]);
 const existingStudentNotice = "Existing student ID will be updated";
+const requiredHeaders = ["student number", "full name"];
+const optionalHeaders = ["contact number"];
 
-function value(row: Record<string, unknown>, aliases: string[]) {
-  const entries = Object.entries(row);
-  const found = entries.find(([key]) => aliases.some((alias) => key.trim().toLowerCase() === alias));
-  return cleanText(found?.[1]);
+function normalizeHeader(value: unknown) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function value(row: Record<string, unknown>, header: string) {
+  return cleanText(row[header]);
 }
 
 function hasBlockingIssue(row: ReviewRow) {
@@ -117,12 +121,18 @@ export async function POST(request: Request, context: Context) {
     if (sheet.actualRowCount > 2_001) return jsonError("Excel import supports up to 2,000 students at a time.");
 
     const headers = sheet.getRow(1).values as ExcelJS.CellValue[];
+    const headerSet = new Set(headers.map(normalizeHeader).filter(Boolean));
+    const missingHeaders = requiredHeaders.filter((header) => !headerSet.has(header));
+    if (missingHeaders.length) {
+      return jsonError(`Excel row 1 must contain these exact headers: ${requiredHeaders.join(", ")}. Optional: ${optionalHeaders.join(", ")}. Column order does not matter.`, 400);
+    }
+
     const rows: Record<string, unknown>[] = [];
     sheet.eachRow((row, rowNumber) => {
       if (rowNumber === 1) return;
       const record: Record<string, unknown> = {};
       for (let column = 1; column < headers.length; column += 1) {
-        const header = String(headers[column] || "").trim();
+        const header = normalizeHeader(headers[column]);
         if (header) record[header] = row.getCell(column).text;
       }
       rows.push(record);
@@ -130,9 +140,9 @@ export async function POST(request: Request, context: Context) {
 
     const seen = new Set<string>();
     const reviewRows: ReviewRow[] = rows.map((row, index) => {
-      const student_number = value(row, ["student id", "student number", "student no", "student_number", "id"]);
-      const full_name = value(row, ["full name", "name", "student name", "fullname"]);
-      const contact_number = value(row, ["contact number", "contact", "phone", "mobile number", "mobile"]) || null;
+      const student_number = value(row, "student number");
+      const full_name = value(row, "full name");
+      const contact_number = value(row, "contact number") || null;
       const issues: string[] = [];
 
       if (!student_number) issues.push("Missing student ID");

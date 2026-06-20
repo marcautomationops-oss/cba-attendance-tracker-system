@@ -1240,7 +1240,7 @@ function CurrentTab({
                 {studentMode === "excel" ? (
                   <div className="rounded border border-line bg-paper p-4">
                     <p className="mb-4 text-sm font-semibold leading-6 text-graphite">
-                      Upload an Excel file to review rows first. Saving the reviewed rows will create or update students and populate the Students panel.
+                      Row 1 must contain exact headers: student number, full name, and optional contact number. Column order does not matter.
                     </p>
                     <label className={`focus-ring inline-flex min-h-11 cursor-pointer items-center gap-2 rounded bg-ledger px-4 py-3 text-sm font-bold text-white hover:bg-ink ${importing ? "opacity-60" : ""}`}>
                       {importing ? <Loader2 className="animate-spin" size={16} /> : <FileSpreadsheet size={16} />}
