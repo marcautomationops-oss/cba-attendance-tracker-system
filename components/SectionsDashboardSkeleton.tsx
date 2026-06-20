@@ -2,7 +2,7 @@ function SkeletonCard({ className = "" }: { className?: string }) {
   return (
     <article
       aria-hidden="true"
-      className={`cockpit-card flex min-h-[190px] flex-col overflow-hidden md:min-h-[260px] lg:min-h-[300px] 2xl:min-h-[330px] ${className}`}
+      className={`cockpit-card flex min-h-[152px] flex-col overflow-hidden sm:min-h-[180px] md:min-h-[240px] lg:min-h-[270px] 2xl:min-h-[300px] ${className}`}
     >
       <div className="flex flex-1 flex-col justify-between gap-5 p-4 sm:p-5 md:gap-7 md:p-6 2xl:p-7">
         <div className="flex min-h-11 items-center justify-between gap-4">

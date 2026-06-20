@@ -32,8 +32,8 @@ export function DeleteControlModal({ entityType, name, openHref, deleting, onClo
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-[#061426]/42 px-3 py-4 sm:px-4 sm:py-8">
-      <section className="cockpit-card max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-x-hidden overflow-y-auto bg-[#f7fbff] p-5 shadow-[0_24px_70px_rgba(6,20,38,0.22)] sm:p-6">
+    <div className="fixed inset-0 z-50 flex items-end overflow-y-auto bg-[#061426]/42 px-2 pb-2 pt-12 sm:grid sm:place-items-center sm:px-4 sm:py-8">
+      <section className="cockpit-card max-h-[88dvh] w-full max-w-lg overflow-x-hidden overflow-y-auto rounded-t-xl bg-[#f7fbff] p-4 shadow-[0_24px_70px_rgba(6,20,38,0.22)] sm:max-h-[calc(100vh-2rem)] sm:rounded sm:p-6">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#335f97]">{entityType} controls</p>

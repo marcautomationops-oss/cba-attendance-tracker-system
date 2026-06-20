@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarRange, FileSpreadsheet, Loader2, Save, Undo2 } from "lucide-react";
+import { CalendarRange, FileSpreadsheet, Loader2, Save, SlidersHorizontal, Undo2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import type { SubjectLogbookPayload } from "@/lib/subjectLogbook";
 import type { AttendanceStatus } from "@/lib/types";
@@ -70,6 +70,9 @@ export function AttendanceLogbook({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [savedCount, setSavedCount] = useState(0);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [mobileStudentId, setMobileStudentId] = useState("");
+  const [mobileStudentQuery, setMobileStudentQuery] = useState("");
 
   const draftCount = Object.keys(drafts).length;
 
@@ -140,11 +143,20 @@ export function AttendanceLogbook({
     });
   }, [drafts, logbook]);
 
+  useEffect(() => {
+    if (!displayRows.length) {
+      setMobileStudentId("");
+      return;
+    }
+    if (!displayRows.some((row) => row.student_id === mobileStudentId)) setMobileStudentId(displayRows[0].student_id);
+  }, [displayRows, mobileStudentId]);
+
   function applyRange(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (draftCount || !fromInput || !toInput || fromInput > toInput) return;
     setFrom(fromInput);
     setTo(toInput);
+    setFilterOpen(false);
   }
 
   function updateDraft(sessionId: string, studentId: string, originalStatus: AttendanceStatus, nextStatus: EditableStatus) {
@@ -189,6 +201,9 @@ export function AttendanceLogbook({
 
   const exportHref = `/api/subjects/${subjectId}/logbook/excel?${new URLSearchParams({ from, to })}`;
   const tableWidth = 380 + (logbook?.sessions.length || 0) * 88 + 390;
+  const tabletTableWidth = 220 + (logbook?.sessions.length || 0) * 72 + 330;
+  const mobileRows = displayRows.filter((row) => `${row.full_name} ${row.student_number}`.toLowerCase().includes(mobileStudentQuery.trim().toLowerCase()));
+  const selectedMobileRow = mobileRows.find((row) => row.student_id === mobileStudentId) || mobileRows[0] || null;
 
   return (
     <section className="min-w-0 border border-line bg-white shadow-sm">
@@ -198,7 +213,10 @@ export function AttendanceLogbook({
             <p className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-pool">Class record</p>
             <h2 className="mt-1 text-2xl font-bold text-ink sm:text-3xl">Attendance Logbook</h2>
           </div>
-          <form onSubmit={applyRange} className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+          <button type="button" onClick={() => setFilterOpen(true)} className="focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded border border-line bg-white px-4 text-sm font-bold text-ink sm:hidden">
+            <SlidersHorizontal size={17} /> Date range
+          </button>
+          <form onSubmit={applyRange} className="hidden gap-3 sm:grid sm:grid-cols-[1fr_1fr_auto] sm:items-end">
             <label className="grid gap-1.5 text-sm font-bold text-graphite">
               Start date
               <input type="date" value={fromInput} disabled={draftCount > 0} onChange={(event) => setFromInput(event.target.value)} className="focus-ring min-h-11 rounded border border-line bg-white px-3 text-ink disabled:bg-gray-100" />
@@ -223,7 +241,7 @@ export function AttendanceLogbook({
             </span>
           ))}
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="hidden flex-wrap gap-2 sm:flex">
           <a href={exportHref} className={`focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded border border-line bg-white px-4 text-sm font-bold text-ink hover:border-pool ${!logbook?.sessions.length ? "pointer-events-none opacity-50" : ""}`}>
             <FileSpreadsheet size={17} />
             Export range
@@ -251,7 +269,71 @@ export function AttendanceLogbook({
       {loading ? (
         <div className="grid min-h-72 place-items-center text-graphite"><Loader2 className="animate-spin" size={28} /></div>
       ) : logbook?.sessions.length ? (
-        <div className="max-h-[68vh] overflow-auto">
+        <>
+          <div className="pb-16 sm:hidden">
+            <div className="grid gap-3 p-3">
+              <input value={mobileStudentQuery} onChange={(event) => setMobileStudentQuery(event.target.value)} placeholder="Search student" className="focus-ring min-h-11 rounded border border-line bg-paper px-3 text-sm font-bold text-ink placeholder:text-graphite/60" />
+              <select value={selectedMobileRow?.student_id || ""} onChange={(event) => setMobileStudentId(event.target.value)} className="focus-ring min-h-11 min-w-0 rounded border border-line bg-white px-3 text-sm font-bold text-ink">
+                {!mobileRows.length ? <option value="">No matching students</option> : null}
+                {mobileRows.map((row) => <option key={row.student_id} value={row.student_id}>{row.full_name} · {row.student_number}</option>)}
+              </select>
+
+              {selectedMobileRow ? (
+                <>
+                  <div className="rounded border border-line bg-paper p-3">
+                    <p className="break-words font-bold text-ink">{selectedMobileRow.full_name}</p>
+                    <p className="font-mono text-xs text-graphite">{selectedMobileRow.student_number}</p>
+                    <dl className="mt-3 grid grid-cols-4 overflow-hidden rounded border border-line bg-white text-center">
+                      {[["P", selectedMobileRow.present], ["L", selectedMobileRow.late], ["A", selectedMobileRow.absent], ["E", selectedMobileRow.excused]].map(([label, value], index) => (
+                        <div key={label} className={index ? "border-l border-line p-2" : "p-2"}><dt className="font-mono text-[10px] font-bold text-graphite">{label}</dt><dd className="text-lg font-extrabold text-ink">{value}</dd></div>
+                      ))}
+                    </dl>
+                    <div className="mt-2 flex items-center justify-between rounded border border-line bg-white px-3 py-2"><span className="text-xs font-bold uppercase tracking-[0.12em] text-graphite">Average</span><strong className="text-lg text-pool">{selectedMobileRow.attendance_average === null ? "--" : `${(selectedMobileRow.attendance_average * 100).toFixed(2)}%`}</strong></div>
+                  </div>
+
+                  <div className="grid gap-2">
+                    {logbook.sessions.map((session) => {
+                      const status = selectedMobileRow.statuses[session.id];
+                      const key = cellKey(session.id, selectedMobileRow.student_id);
+                      const label = sessionHeader(session.start_time);
+                      return (
+                        <div key={session.id} className="flex min-h-[62px] items-center justify-between gap-3 rounded border border-line bg-white px-3 py-2">
+                          <div><p className="font-bold text-ink">{label.date}</p><p className="font-mono text-xs text-graphite">{label.time}</p></div>
+                          <select value={status} onChange={(event) => updateDraft(session.id, selectedMobileRow.student_id, logbook.rows.find((item) => item.student_id === selectedMobileRow.student_id)?.statuses[session.id] || "absent", event.target.value as EditableStatus)} className={`focus-ring h-11 min-w-28 rounded border px-2 text-sm font-extrabold ${statusTone[status]} ${drafts[key] ? "ring-2 ring-pool ring-offset-1" : ""}`} aria-label={`${selectedMobileRow.full_name}, ${label.date}`}>
+                            {statusOptions.map((option) => <option key={option.value} value={option.value}>{option.letter} · {option.label}</option>)}
+                          </select>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : <p className="rounded border border-dashed border-line p-5 text-center text-sm text-graphite">No matching students.</p>}
+            </div>
+
+            <div className="fixed inset-x-3 bottom-[68px] z-30 grid grid-cols-[auto_1fr_1fr] gap-2 rounded border border-line bg-white/95 p-2 shadow-soft backdrop-blur">
+              <a href={exportHref} className="focus-ring grid h-11 w-11 place-items-center rounded border border-line bg-paper text-ink" aria-label="Export range"><FileSpreadsheet size={17} /></a>
+              <button type="button" onClick={() => setDrafts({})} disabled={!draftCount || saving} className="focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded border border-line bg-white px-3 text-sm font-bold text-ink disabled:opacity-50"><Undo2 size={16} /> Discard</button>
+              <button type="button" onClick={saveChanges} disabled={!draftCount || saving} className="focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded bg-ledger px-3 text-sm font-bold text-white disabled:opacity-50">{saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Save{draftCount ? ` (${draftCount})` : ""}</button>
+            </div>
+          </div>
+
+          <div className="hidden max-h-[68vh] overflow-auto sm:block xl:hidden">
+            <table className="border-separate border-spacing-0 text-left" style={{ minWidth: tabletTableWidth }}>
+              <thead className="sticky top-0 z-30 bg-ledger text-white"><tr>
+                <th className="sticky left-0 z-40 w-[220px] min-w-[220px] border-b border-r border-white/15 bg-ledger px-3 py-3 font-mono text-[11px] uppercase tracking-[0.1em]">Student</th>
+                {logbook.sessions.map((session) => { const label = sessionHeader(session.start_time); return <th key={session.id} className="w-[72px] min-w-[72px] border-b border-r border-white/15 px-1 py-2 text-center"><span className="block text-xs font-extrabold">{label.date}</span><span className="block font-mono text-[9px] text-white/70">{label.time}</span></th>; })}
+                {['P', 'L', 'A', 'E', 'Average'].map((label) => <th key={label} className="min-w-[60px] border-b border-r border-white/15 px-2 py-3 text-center font-mono text-[10px] uppercase last:min-w-[90px]">{label}</th>)}
+              </tr></thead>
+              <tbody>{displayRows.map((row, rowIndex) => <tr key={row.student_id} className={rowIndex % 2 ? "bg-paper" : "bg-white"}>
+                <td className={`sticky left-0 z-20 border-b border-r border-line px-3 py-2 ${rowIndex % 2 ? "bg-paper" : "bg-white"}`}><p className="font-bold text-ink">{row.full_name}</p><p className="font-mono text-[10px] text-graphite">{row.student_number}</p></td>
+                {logbook.sessions.map((session) => { const status = row.statuses[session.id]; const key = cellKey(session.id, row.student_id); return <td key={session.id} className="border-b border-r border-line p-1 text-center"><select value={status} onChange={(event) => updateDraft(session.id, row.student_id, logbook.rows.find((item) => item.student_id === row.student_id)?.statuses[session.id] || "absent", event.target.value as EditableStatus)} className={`focus-ring h-10 w-11 rounded border text-center text-sm font-extrabold ${statusTone[status]} ${drafts[key] ? "ring-2 ring-pool" : ""}`} aria-label={`${row.full_name}, ${sessionHeader(session.start_time).date}`}>{statusOptions.map((option) => <option key={option.value} value={option.value}>{option.letter}</option>)}</select></td>; })}
+                {[row.present, row.late, row.absent, row.excused].map((value, index) => <td key={index} className="border-b border-r border-line px-2 py-2 text-center font-bold text-graphite">{value}</td>)}
+                <td className="border-b border-line px-2 py-2 text-center font-extrabold text-pool">{row.attendance_average === null ? "--" : `${(row.attendance_average * 100).toFixed(0)}%`}</td>
+              </tr>)}</tbody>
+            </table>
+          </div>
+
+        <div className="hidden max-h-[68vh] overflow-auto xl:block">
           <table className="border-separate border-spacing-0 text-left" style={{ minWidth: tableWidth }}>
             <thead className="sticky top-0 z-30 bg-ledger text-white">
               <tr>
@@ -299,11 +381,25 @@ export function AttendanceLogbook({
             </tbody>
           </table>
         </div>
+        </>
       ) : (
         <div className="grid min-h-72 place-items-center px-6 text-center">
           <div><CalendarRange className="mx-auto text-pool" size={30} /><p className="mt-3 font-bold text-ink">No closed sessions in this date range.</p></div>
         </div>
       )}
+
+      {filterOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end bg-ink/45 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-12 sm:hidden">
+          <section className="w-full rounded-t-xl border border-line bg-white p-4 shadow-soft">
+            <div className="mb-4 flex items-center justify-between gap-3"><div><p className="font-mono text-xs font-bold uppercase tracking-[0.16em] text-pool">Logbook filter</p><h3 className="mt-1 text-xl font-bold text-ink">Date range</h3></div><button type="button" onClick={() => setFilterOpen(false)} className="focus-ring grid h-11 w-11 place-items-center rounded border border-line text-graphite"><X size={18} /></button></div>
+            <form onSubmit={applyRange} className="grid gap-3">
+              <label className="grid gap-1.5 text-sm font-bold text-graphite">Start date<input type="date" value={fromInput} disabled={draftCount > 0} onChange={(event) => setFromInput(event.target.value)} className="focus-ring min-h-11 rounded border border-line bg-paper px-3 text-ink" /></label>
+              <label className="grid gap-1.5 text-sm font-bold text-graphite">End date<input type="date" value={toInput} min={fromInput} disabled={draftCount > 0} onChange={(event) => setToInput(event.target.value)} className="focus-ring min-h-11 rounded border border-line bg-paper px-3 text-ink" /></label>
+              <button type="submit" disabled={draftCount > 0 || !fromInput || !toInput || fromInput > toInput || loading} className="focus-ring inline-flex min-h-12 items-center justify-center gap-2 rounded bg-ledger px-4 font-bold text-white disabled:opacity-50"><CalendarRange size={17} /> Apply range</button>
+            </form>
+          </section>
+        </div>
+      ) : null}
     </section>
   );
 }

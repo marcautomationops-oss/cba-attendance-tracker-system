@@ -265,34 +265,42 @@ export async function GET(request: Request, context: Context) {
     if (student.alert_absent_count >= firstAbsentMilestone) return student.sms_alerts.absent !== "Sent";
     return student.sms_alerts.late !== "Sent";
   });
+  function topThreeRanks(
+    valueFor: (student: (typeof individual)[number]) => number,
+    labelFor: (value: number) => string,
+    excludeZero = false
+  ) {
+    let rank = 0;
+    let previousValue: number | null = null;
+    return individual
+      .map((student) => ({ student, value: valueFor(student) }))
+      .filter((entry) => !excludeZero || entry.value > 0)
+      .sort((a, b) => b.value - a.value || a.student.full_name.localeCompare(b.student.full_name))
+      .map((entry) => {
+        if (entry.value !== previousValue) {
+          rank += 1;
+          previousValue = entry.value;
+        }
+        return {
+          rank,
+          student_id: entry.student.student_id,
+          full_name: entry.student.full_name,
+          value: entry.value,
+          label: labelFor(entry.value)
+        };
+      })
+      .filter((entry) => entry.rank <= 3);
+  }
+
   const leaders = {
-    most_present: [...individual]
-      .sort((a, b) => b.on_time_count + b.late_count - (a.on_time_count + a.late_count))
-      .slice(0, 3)
-      .map((student) => ({
-        student_id: student.student_id,
-        full_name: student.full_name,
-        value: student.on_time_count + student.late_count,
-        label: `${student.on_time_count + student.late_count}/${closedSessions.length} sessions`
-      })),
-    most_late: [...individual]
-      .sort((a, b) => b.late_count - a.late_count)
-      .slice(0, 3)
-      .map((student) => ({
-        student_id: student.student_id,
-        full_name: student.full_name,
-        value: student.late_count,
-        label: `${student.late_count} late`
-      })),
-    most_absent: [...individual]
-      .sort((a, b) => b.absent_count - a.absent_count)
-      .slice(0, 3)
-      .map((student) => ({
-        student_id: student.student_id,
-        full_name: student.full_name,
-        value: student.absent_count,
-        label: `${student.absent_count} absent`
-      }))
+    most_present: closedSessions.length
+      ? topThreeRanks(
+          (student) => student.on_time_count + student.late_count,
+          (value) => `${value}/${closedSessions.length} sessions`
+        )
+      : [],
+    most_late: topThreeRanks((student) => student.late_count, (value) => `${value} late`, true),
+    most_absent: topThreeRanks((student) => student.absent_count, (value) => `${value} absent`, true)
   };
 
   return NextResponse.json({

@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarRange, Download, FileSpreadsheet, Loader2, RefreshCw } from "lucide-react";
+import { CalendarRange, Download, FileSpreadsheet, Loader2, RefreshCw, SlidersHorizontal } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import type { AttendanceSummaryPayload } from "@/lib/attendanceSummary";
 import type { Subject } from "@/lib/types";
@@ -29,6 +29,7 @@ export function ExportCenter({ sections }: { sections: SectionOption[] }) {
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   function clearResult() {
     setPreview(null);
@@ -119,7 +120,10 @@ export function ExportCenter({ sections }: { sections: SectionOption[] }) {
         </div>
       </div>
 
-      <form onSubmit={loadPreview} className="cockpit-card grid gap-4 p-3 sm:p-5 md:grid-cols-2 md:p-6 xl:grid-cols-[1.1fr_1.1fr_0.9fr_0.9fr_auto] xl:items-end">
+      <button type="button" onClick={() => setFiltersOpen((open) => !open)} className="focus-ring mb-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded border border-[#9fb9d6] bg-white px-4 text-sm font-bold text-[#071529] sm:hidden" aria-expanded={filtersOpen}>
+        <SlidersHorizontal size={17} /> {filtersOpen ? "Hide filters" : "Choose export filters"}
+      </button>
+      <form onSubmit={loadPreview} className={`cockpit-card gap-4 p-3 sm:grid sm:p-5 md:grid-cols-2 md:p-6 xl:grid-cols-[1.1fr_1.1fr_0.9fr_0.9fr_auto] xl:items-end ${filtersOpen ? "grid" : "hidden"}`}>
         <label className="grid gap-2 text-sm font-bold text-[#47627f]">
           Section
           <select
@@ -231,12 +235,23 @@ export function ExportCenter({ sections }: { sections: SectionOption[] }) {
         </div>
 
         {preview?.rows.length ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[840px] border-collapse text-left">
+          <>
+          <div className="grid gap-2 p-3 sm:hidden">
+            {preview.rows.map((row) => (
+              <article key={row.student_id} className="rounded border border-[#c7d8ea] bg-white p-3">
+                <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="break-words font-bold text-[#071529]">{row.full_name}</p><p className="font-mono text-xs text-[#47627f]">{row.student_number}</p></div><strong className="shrink-0 text-lg text-[#174f9c]">{formatPercent(row.attendance_average)}</strong></div>
+                <dl className="mt-3 grid grid-cols-3 overflow-hidden rounded border border-[#c7d8ea] bg-[#f4f9ff] text-center">
+                  {[["Present", row.present], ["Late", row.late], ["Absent", row.absent], ["Excused", row.excused], ["Closed", row.closed_sessions]].map(([label, value], index) => <div key={label} className={`p-2 ${index % 3 ? "border-l border-[#c7d8ea]" : ""} ${index >= 3 ? "border-t border-[#c7d8ea]" : ""}`}><dt className="text-[9px] font-bold uppercase text-[#5f7590]">{label}</dt><dd className="font-extrabold text-[#071529]">{value}</dd></div>)}
+                </dl>
+              </article>
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto sm:block">
+            <table className="w-full min-w-[720px] border-collapse text-left xl:min-w-[840px]">
               <thead className="bg-[#071529] text-white">
                 <tr>
                   {["Student no.", "Student name", "Present", "Late", "Absent", "Excused", "Closed", "Average"].map((heading) => (
-                    <th key={heading} className="border-r border-white/10 px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-[0.12em] last:border-r-0">
+                    <th key={heading} className="border-r border-white/10 px-2 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.08em] last:border-r-0 xl:px-4 xl:text-[11px] xl:tracking-[0.12em]">
                       {heading}
                     </th>
                   ))}
@@ -245,19 +260,20 @@ export function ExportCenter({ sections }: { sections: SectionOption[] }) {
               <tbody>
                 {preview.rows.map((row, index) => (
                   <tr key={row.student_id} className={index % 2 ? "bg-[#f4f9ff]" : "bg-white"}>
-                    <td className="border-b border-[#c7d8ea] px-4 py-3 font-mono text-xs font-bold text-[#47627f]">{row.student_number}</td>
-                    <td className="border-b border-[#c7d8ea] px-4 py-3 font-bold text-[#071529]">{row.full_name}</td>
-                    <td className="border-b border-[#c7d8ea] px-4 py-3 tabular-nums">{row.present}</td>
-                    <td className="border-b border-[#c7d8ea] px-4 py-3 tabular-nums">{row.late}</td>
-                    <td className="border-b border-[#c7d8ea] px-4 py-3 tabular-nums">{row.absent}</td>
-                    <td className="border-b border-[#c7d8ea] px-4 py-3 tabular-nums">{row.excused}</td>
-                    <td className="border-b border-[#c7d8ea] px-4 py-3 tabular-nums">{row.closed_sessions}</td>
-                    <td className="border-b border-[#c7d8ea] px-4 py-3 text-lg font-extrabold tabular-nums text-[#174f9c]">{formatPercent(row.attendance_average)}</td>
+                    <td className="border-b border-[#c7d8ea] px-2 py-3 font-mono text-xs font-bold text-[#47627f] xl:px-4">{row.student_number}</td>
+                    <td className="border-b border-[#c7d8ea] px-2 py-3 font-bold text-[#071529] xl:px-4">{row.full_name}</td>
+                    <td className="border-b border-[#c7d8ea] px-2 py-3 tabular-nums xl:px-4">{row.present}</td>
+                    <td className="border-b border-[#c7d8ea] px-2 py-3 tabular-nums xl:px-4">{row.late}</td>
+                    <td className="border-b border-[#c7d8ea] px-2 py-3 tabular-nums xl:px-4">{row.absent}</td>
+                    <td className="border-b border-[#c7d8ea] px-2 py-3 tabular-nums xl:px-4">{row.excused}</td>
+                    <td className="border-b border-[#c7d8ea] px-2 py-3 tabular-nums xl:px-4">{row.closed_sessions}</td>
+                    <td className="border-b border-[#c7d8ea] px-2 py-3 text-base font-extrabold tabular-nums text-[#174f9c] xl:px-4 xl:text-lg">{formatPercent(row.attendance_average)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          </>
         ) : (
           <div className="grid min-h-72 place-items-center px-6 py-12 text-center">
             <div>

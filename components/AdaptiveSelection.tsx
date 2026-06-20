@@ -36,13 +36,13 @@ type AddItemSheetProps = {
 
 export function SelectionCard({ label, name, href, actionLabel, onControl }: SelectionCardProps) {
   return (
-    <article className="cockpit-card focus-within:border-[#2f6fea] group relative flex min-h-[190px] flex-col overflow-hidden text-left transition hover:border-[#2f6fea] hover:shadow-soft md:min-h-[260px] lg:min-h-[300px] xl:hover:-translate-y-1 2xl:min-h-[330px]">
+    <article className="cockpit-card focus-within:border-[#2f6fea] group relative flex min-h-[152px] flex-col overflow-hidden text-left transition hover:border-[#2f6fea] hover:shadow-soft sm:min-h-[180px] md:min-h-[240px] lg:min-h-[270px] xl:hover:-translate-y-1 2xl:min-h-[300px]">
       <Link
         href={href}
         aria-label={`${actionLabel}: ${name}`}
         className="focus-ring absolute inset-0 z-10"
       />
-      <div className="pointer-events-none relative z-20 flex flex-1 flex-col justify-between gap-5 p-4 sm:p-5 md:gap-7 md:p-6 2xl:p-7">
+      <div className="pointer-events-none relative z-20 flex flex-1 flex-col justify-between gap-3 p-3 sm:gap-5 sm:p-5 md:gap-6 md:p-6 2xl:p-7">
         <div className="flex items-center justify-between gap-4">
           <button
             type="button"
@@ -59,14 +59,14 @@ export function SelectionCard({ label, name, href, actionLabel, onControl }: Sel
         </div>
 
         <div className="block px-1">
-          <h2 className="selection-card-title font-display text-center text-[clamp(1.65rem,8vw,2.25rem)] font-extrabold leading-[1] tracking-[-0.035em] text-[#071529] md:text-[36px] xl:text-[40px]">
+          <h2 className="selection-card-title font-display text-center text-[clamp(1.45rem,7vw,2rem)] font-extrabold leading-[1] tracking-[-0.035em] text-[#071529] md:text-[34px] xl:text-[38px]">
             {name}
           </h2>
         </div>
 
         <div className="cockpit-rule" />
       </div>
-      <div className="pointer-events-none relative z-20 flex min-h-12 items-center justify-between border-t border-[#9fb9d6]/38 bg-[#eaf4ff]/70 px-4 py-3 text-xs font-bold uppercase tracking-[0.06em] text-[#061426] sm:px-5 md:min-h-14 md:px-6 md:text-sm 2xl:px-7">
+      <div className="pointer-events-none relative z-20 flex min-h-11 items-center justify-between border-t border-[#9fb9d6]/38 bg-[#eaf4ff]/70 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.06em] text-[#061426] sm:min-h-12 sm:px-5 sm:py-3 sm:text-xs md:min-h-14 md:px-6 md:text-sm 2xl:px-7">
         <span className="min-w-0 break-words">{actionLabel}</span>
         <ArrowRight className="shrink-0 transition group-hover:translate-x-1" size={22} />
       </div>
@@ -160,8 +160,8 @@ export function AddItemSheet({ open, title, description, onClose, children }: Ad
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-[#061426]/48 px-3 pb-3 pt-16 md:hidden">
-      <section className="cockpit-card w-full bg-[#f7fbff] p-5 shadow-[0_24px_70px_rgba(6,20,38,0.26)]">
+    <div className="fixed inset-0 z-50 flex items-end bg-[#061426]/48 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-12 md:hidden">
+      <section className="cockpit-card max-h-[88dvh] w-full overflow-y-auto rounded-t-xl bg-[#f7fbff] p-4 shadow-[0_24px_70px_rgba(6,20,38,0.26)] sm:p-5">
         <div className="mb-4 flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h2 className="font-display text-2xl font-extrabold tracking-[-0.035em] text-[#071529]">{title}</h2>

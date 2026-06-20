@@ -5,6 +5,7 @@ import {
   Bell,
   BookOpen,
   CalendarDays,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Copy,
@@ -13,6 +14,7 @@ import {
   FileText,
   History,
   Loader2,
+  MoreHorizontal,
   Pencil,
   Play,
   Plus,
@@ -116,6 +118,7 @@ type AttendanceTrendRow = {
 };
 
 type AnalyticsLeader = {
+  rank: number;
   student_id: string;
   full_name: string;
   value: number;
@@ -1016,7 +1019,7 @@ function CurrentTab({
   }
 
   return (
-    <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(320px,460px)_minmax(0,1fr)] 2xl:grid-cols-[520px_minmax(0,1fr)]">
+    <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(300px,380px)_minmax(0,1fr)] xl:grid-cols-[minmax(320px,440px)_minmax(0,1fr)] 2xl:grid-cols-[500px_minmax(0,1fr)] 2xl:gap-5">
       {activeSession && activeAttendanceLink ? (
         <QRCodeDisplay link={activeAttendanceLink}>
           <div className="grid gap-2">
@@ -1042,10 +1045,10 @@ function CurrentTab({
         </QRCodeDisplay>
       ) : (
         <section className="h-fit min-w-0 self-start rounded border border-line bg-white p-4 shadow-sm sm:p-5 2xl:p-7">
-          <div className="grid min-h-[320px] content-center gap-6 text-center md:min-h-[420px]">
+          <div className="grid min-h-[250px] content-center gap-4 text-center sm:min-h-[300px] md:gap-6 lg:min-h-[380px]">
             <div>
               <UtilityLabel>Attendance control</UtilityLabel>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-ink md:text-4xl">Start today&apos;s session</h2>
+              <h2 className="mt-2 text-2xl font-bold tracking-tight text-ink sm:mt-3 sm:text-3xl md:text-4xl">Start today&apos;s session</h2>
             </div>
             <label className="focus-within:ring-2 focus-within:ring-pool mx-auto grid min-h-12 w-full max-w-xs grid-cols-[minmax(0,1fr)_7rem] items-center rounded border border-line bg-paper px-4 py-3 text-left text-sm shadow-sm">
               <span className="font-bold text-graphite">Late after</span>
@@ -1118,8 +1121,8 @@ function CurrentTab({
           />
 
           {studentPanelOpen ? (
-            <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/35 px-3 py-4 sm:px-4 sm:py-8">
-              <section className="max-h-[calc(100vh-2rem)] w-full max-w-3xl overflow-y-auto rounded border border-line bg-white p-4 shadow-soft sm:p-5">
+            <div className="fixed inset-0 z-50 flex items-end overflow-y-auto bg-ink/45 px-2 pb-2 pt-12 sm:grid sm:place-items-center sm:px-4 sm:py-8">
+              <section className="absolute inset-x-2 bottom-2 max-h-[88dvh] w-auto overflow-y-auto rounded-t-xl border border-line bg-white p-4 shadow-soft sm:static sm:mx-auto sm:max-h-[calc(100vh-2rem)] sm:w-full sm:max-w-3xl sm:rounded sm:p-5">
                 <div className="mb-5 flex items-center justify-between gap-4">
                   <div>
                     <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-pool">Student intake</p>
@@ -1269,6 +1272,8 @@ function HistoryTab({
   reload: () => void;
   onDeleteSession: (session: AttendanceSession) => void;
 }) {
+  const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
+
   if (selectedSessionId) {
     const counts = records?.counts;
     return (
@@ -1285,7 +1290,19 @@ function HistoryTab({
             </button>
             <h2 className="selection-card-title text-2xl font-bold text-ink sm:text-3xl">{selectedSession ? displayDateTime(selectedSession.start_time) : "Session records"}</h2>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="relative sm:hidden">
+            <button type="button" onClick={() => setMobileActionsOpen((open) => !open)} className="focus-ring grid h-11 w-11 place-items-center rounded border border-line bg-paper text-ink" aria-label="Session actions" aria-expanded={mobileActionsOpen}>
+              <MoreHorizontal size={20} />
+            </button>
+            {mobileActionsOpen ? (
+              <div className="absolute right-0 top-12 z-30 grid w-48 gap-1 rounded border border-line bg-white p-2 shadow-soft">
+                <a href={`/api/sessions/${selectedSessionId}/export/excel`} className="focus-ring inline-flex min-h-11 items-center gap-2 rounded px-3 text-sm font-bold text-ink hover:bg-paper"><Download size={16} /> Excel</a>
+                <a href={`/api/sessions/${selectedSessionId}/export/pdf`} className="focus-ring inline-flex min-h-11 items-center gap-2 rounded px-3 text-sm font-bold text-ink hover:bg-paper"><FileText size={16} /> PDF</a>
+                {selectedSession ? <button type="button" onClick={() => onDeleteSession(selectedSession)} className="focus-ring inline-flex min-h-11 items-center gap-2 rounded px-3 text-left text-sm font-bold text-red-700 hover:bg-red-50"><Trash2 size={16} /> Delete session</button> : null}
+              </div>
+            ) : null}
+          </div>
+          <div className="hidden flex-wrap gap-2 sm:flex">
             <a href={`/api/sessions/${selectedSessionId}/export/excel`} className="focus-ring inline-flex min-h-11 items-center gap-2 rounded border border-line bg-paper px-3 py-2 text-sm font-bold text-ink hover:border-pool">
               <Download size={16} />
               Excel
@@ -1306,7 +1323,7 @@ function HistoryTab({
             ) : null}
           </div>
         </div>
-        <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-4 grid grid-cols-2 gap-2 sm:mb-5 sm:gap-3 lg:grid-cols-4">
           <CountCard label="On time" value={counts?.on_time ?? 0} tone="green" />
           <CountCard label="Late" value={counts?.late ?? 0} tone="amber" />
           <CountCard label="Absent" value={counts?.absent ?? 0} tone="gray" />
@@ -1335,7 +1352,7 @@ function HistoryTab({
               key={session.id}
               type="button"
               onClick={() => openSession(session.id)}
-              className="focus-ring grid min-h-16 gap-3 rounded border border-line bg-paper p-4 text-left transition hover:border-pool hover:bg-white lg:grid-cols-[1fr_auto] lg:items-center"
+              className="focus-ring grid min-h-14 gap-2 rounded border border-line bg-paper p-3 text-left transition hover:border-pool hover:bg-white sm:min-h-16 sm:gap-3 sm:p-4 lg:grid-cols-[1fr_auto] lg:items-center"
             >
               <div>
                 <p className="break-words font-bold text-ink">{displayDateTime(session.start_time)}</p>
@@ -1379,40 +1396,54 @@ function StudentList({
 }) {
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [removingStudent, setRemovingStudent] = useState<Student | null>(null);
+  const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
 
   return (
     <>
       <div className="grid gap-2">
-        {students.map((student) => (
-          <div key={student.id} className="grid gap-3 rounded border border-line bg-paper px-3 py-3 sm:grid-cols-[auto_1fr_auto] sm:items-center">
-            <div className="flex min-w-0 items-center gap-3">
-              <StudentAvatar student={student} />
-              <div className="min-w-0">
-                <p className="break-words font-bold text-ink">{student.full_name}</p>
-                <p className="font-mono text-xs text-graphite">{student.student_number}</p>
+        {students.map((student) => {
+          const expanded = expandedStudentId === student.id;
+          return (
+            <div key={student.id} className="overflow-hidden rounded border border-line bg-paper">
+              <div className="sm:hidden">
+                <button type="button" onClick={() => setExpandedStudentId(expanded ? null : student.id)} className="focus-ring flex min-h-[68px] w-full items-center gap-3 px-3 py-2 text-left" aria-expanded={expanded}>
+                  <StudentAvatar student={student} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block break-words font-bold text-ink">{student.full_name}</span>
+                    <span className="block font-mono text-xs text-graphite">{student.student_number}</span>
+                  </span>
+                  <ChevronDown size={18} className={`shrink-0 text-graphite transition ${expanded ? "rotate-180" : ""}`} />
+                </button>
+                {expanded ? (
+                  <div className="grid gap-3 border-t border-line bg-white px-3 py-3">
+                    <p className="min-w-0 break-words text-sm font-semibold text-graphite">{student.contact_number || "No contact number"}</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => setEditingStudent(student)} className="focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded border border-line bg-paper px-3 text-sm font-bold text-ink hover:border-pool">
+                        <Pencil size={16} /> Edit
+                      </button>
+                      <button type="button" onClick={() => setRemovingStudent(student)} className="focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded border border-red-200 bg-red-50 px-3 text-sm font-bold text-red-700 hover:border-red-400">
+                        <Trash2 size={16} /> Remove
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="hidden gap-3 px-3 py-3 sm:grid sm:grid-cols-[auto_minmax(0,1fr)_minmax(140px,auto)_auto] sm:items-center">
+                <StudentAvatar student={student} />
+                <div className="min-w-0">
+                  <p className="break-words font-bold text-ink">{student.full_name}</p>
+                  <p className="font-mono text-xs text-graphite">{student.student_number}</p>
+                </div>
+                <p className="min-w-0 break-words text-right text-sm font-semibold text-graphite">{student.contact_number || "No contact number"}</p>
+                <div className="flex gap-2 justify-self-end">
+                  <button type="button" onClick={() => setEditingStudent(student)} className="focus-ring inline-flex h-11 w-11 items-center justify-center rounded border border-line bg-white text-ink hover:border-pool" aria-label={`Edit ${student.full_name}`}><Pencil size={16} /></button>
+                  <button type="button" onClick={() => setRemovingStudent(student)} className="focus-ring inline-flex h-11 w-11 items-center justify-center rounded border border-line bg-white text-red-700 hover:border-red-300 hover:bg-red-50" aria-label={`Remove ${student.full_name}`}><Trash2 size={16} /></button>
+                </div>
               </div>
             </div>
-            <p className="min-w-0 break-words text-sm font-semibold text-graphite sm:text-right">{student.contact_number || "No contact number"}</p>
-            <div className="flex gap-2 sm:justify-end">
-              <button
-                type="button"
-                onClick={() => setEditingStudent(student)}
-                className="focus-ring inline-flex h-11 w-11 items-center justify-center rounded border border-line bg-white text-ink hover:border-pool"
-                aria-label={`Edit ${student.full_name}`}
-              >
-                <Pencil size={16} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setRemovingStudent(student)}
-                className="focus-ring inline-flex h-11 w-11 items-center justify-center rounded border border-line bg-white text-red-700 hover:border-red-300 hover:bg-red-50"
-                aria-label={`Remove ${student.full_name}`}
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
         {!students.length ? <p className="rounded border border-dashed border-line p-5 text-center text-sm text-graphite">Add students for this subject.</p> : null}
       </div>
 
@@ -1463,8 +1494,8 @@ function EditStudentModal({
   const preview = form.profile_photo_data_url || student.profile_photo_url || "";
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/35 px-3 py-4 sm:px-4 sm:py-8">
-      <section className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded border border-line bg-white p-4 shadow-soft sm:p-5">
+    <div className="fixed inset-0 z-50 flex items-end overflow-y-auto bg-ink/45 px-2 pb-2 pt-12 sm:grid sm:place-items-center sm:px-4 sm:py-8">
+      <section className="absolute inset-x-2 bottom-2 max-h-[88dvh] w-auto overflow-y-auto rounded-t-xl border border-line bg-white p-4 shadow-soft sm:static sm:mx-auto sm:max-h-[calc(100vh-2rem)] sm:w-full sm:max-w-2xl sm:rounded sm:p-5">
         <div className="mb-5 flex items-center justify-between gap-4">
           <div>
             <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-pool">Student record</p>
@@ -1480,10 +1511,10 @@ function EditStudentModal({
             event.preventDefault();
             await onSave(form);
           }}
-          className="grid gap-4 rounded border border-line bg-paper p-3 sm:p-4 lg:grid-cols-[160px_1fr]"
+          className="grid gap-4 rounded border border-line bg-paper p-3 sm:p-4 md:grid-cols-[140px_1fr] lg:grid-cols-[160px_1fr]"
         >
           <div className="grid gap-3">
-            <div className="grid aspect-square place-items-center overflow-hidden rounded border border-line bg-white">
+            <div className="mx-auto grid aspect-square w-28 place-items-center overflow-hidden rounded border border-line bg-white sm:w-36 md:w-full">
               {preview ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={preview} alt="Student preview" className="h-full w-full object-cover" />
@@ -1550,7 +1581,7 @@ function RemoveStudentModal({
   onConfirm: () => Promise<void>;
 }) {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/35 px-3 py-4 sm:px-4 sm:py-8">
+    <div className="fixed inset-0 z-50 flex items-end overflow-y-auto bg-ink/45 px-2 pb-2 pt-12 sm:grid sm:place-items-center sm:px-4 sm:py-8">
       <section className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded border border-line bg-white p-4 shadow-soft sm:p-5">
         <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-red-700">Remove from subject</p>
         <h3 className="mt-2 break-words text-2xl font-bold text-ink">{student.full_name}</h3>
@@ -1588,7 +1619,7 @@ function DeleteSessionModal({
   onConfirm: () => Promise<boolean>;
 }) {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/35 px-3 py-4 sm:px-4 sm:py-8">
+    <div className="fixed inset-0 z-50 flex items-end overflow-y-auto bg-ink/45 px-2 pb-2 pt-12 sm:grid sm:place-items-center sm:px-4 sm:py-8">
       <section className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded border border-line bg-white p-4 shadow-soft sm:p-5">
         <p className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-red-700">Delete session</p>
         <h3 className="mt-2 break-words text-2xl font-bold text-ink">{displayDateTime(session.start_time)}</h3>
@@ -1626,7 +1657,7 @@ function CloseAttendanceModal({
   onConfirm: () => Promise<void>;
 }) {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/35 px-3 py-4 sm:px-4 sm:py-8">
+    <div className="fixed inset-0 z-50 flex items-end overflow-y-auto bg-ink/45 px-2 pb-2 pt-12 sm:grid sm:place-items-center sm:px-4 sm:py-8">
       <section
         role="dialog"
         aria-modal="true"
@@ -1674,9 +1705,9 @@ function CountCard({ label, value, tone }: { label: string; value: number; tone:
     blue: "border-pool bg-blue-50 text-pool"
   };
   return (
-    <div className={`rounded border p-4 ${tones[tone]}`}>
-      <p className="font-mono text-xs font-bold uppercase tracking-[0.18em]">{label}</p>
-      <p className="mt-2 text-3xl font-bold">{value}</p>
+    <div className={`rounded border p-3 sm:p-4 ${tones[tone]}`}>
+      <p className="font-mono text-[10px] font-bold uppercase tracking-[0.12em] sm:text-xs sm:tracking-[0.18em]">{label}</p>
+      <p className="mt-1 text-2xl font-bold sm:mt-2 sm:text-3xl">{value}</p>
     </div>
   );
 }
@@ -1708,6 +1739,7 @@ function AnalyticsPanel({ analytics, loaded }: { analytics: AnalyticsPayload | n
   const [selectedStudent, setSelectedStudent] = useState<IndividualAnalytics | null>(null);
   const [riskFilter, setRiskFilter] = useState<RiskLevel | null>(null);
   const [historyMonth, setHistoryMonth] = useState("");
+  const [expandedLeaders, setExpandedLeaders] = useState<Record<string, boolean>>({});
 
   if (!loaded) {
     return <AnalyticsSkeleton />;
@@ -1716,18 +1748,19 @@ function AnalyticsPanel({ analytics, loaded }: { analytics: AnalyticsPayload | n
   if (!analytics) return <div className="rounded border border-signal bg-red-50 p-4 font-semibold text-signal">Analytics could not load.</div>;
 
   const summary = analytics.summary || { class_attendance: 0, total_sessions: 0, students_at_risk: 0, late_count: 0, absent_count: 0, sms_alerts: 0, sms_reachable: 0 };
+  const possibleRecords = analytics.individual.length * summary.total_sessions;
   const topCards = [
-    { label: "Class Attendance", subtext: "Students who attended closed sessions.", value: `${summary.class_attendance}%`, accent: "bg-green-500" },
-    { label: "Total Sessions", subtext: "Closed attendance sessions.", value: summary.total_sessions, accent: "bg-blue-500" },
-    { label: "Students at Risk", subtext: "Students who may need attention.", value: summary.students_at_risk, accent: "bg-red-500" },
-    { label: "Total Late", subtext: "Late records in closed sessions.", value: summary.late_count, accent: "bg-amber-500" },
-    { label: "Total Absent", subtext: "Missed closed sessions.", value: summary.absent_count, accent: "bg-red-500" },
-    { label: "SMS Needed", subtext: `${summary.sms_reachable} can receive a message now.`, value: summary.sms_alerts, accent: "bg-blue-500" }
+    { label: "Class Attendance", subtext: "Students who attended closed sessions.", value: `${summary.class_attendance}%`, accent: "bg-green-500", progress: summary.class_attendance },
+    { label: "Total Sessions", subtext: "Closed attendance sessions.", value: summary.total_sessions, accent: "bg-blue-500", progress: null },
+    { label: "Students at Risk", subtext: "Students who may need attention.", value: summary.students_at_risk, accent: "bg-red-500", progress: percent(summary.students_at_risk, analytics.individual.length) },
+    { label: "Total Late", subtext: "Late records in closed sessions.", value: summary.late_count, accent: "bg-amber-500", progress: percent(summary.late_count, possibleRecords) },
+    { label: "Total Absent", subtext: "Missed closed sessions.", value: summary.absent_count, accent: "bg-red-500", progress: percent(summary.absent_count, possibleRecords) },
+    { label: "SMS Needed", subtext: `${summary.sms_reachable} can receive a message now.`, value: summary.sms_alerts, accent: "bg-blue-500", progress: null }
   ];
   const leaderGroups = [
-    { title: "Most Present", subtext: "Students with the best attendance.", rows: analytics.leaders?.most_present || [] },
-    { title: "Most Late", subtext: "Students late most often.", rows: analytics.leaders?.most_late || [] },
-    { title: "Most Absent", subtext: "Students absent most often.", rows: analytics.leaders?.most_absent || [] }
+    { key: "present", title: "Best Attendance", subtext: "Students with the best attendance.", empty: "No attendance data yet", rows: analytics.leaders?.most_present || [] },
+    { key: "late", title: "Most Late Arrivals", subtext: "Students late most often.", empty: "No late arrivals", rows: analytics.leaders?.most_late || [] },
+    { key: "absent", title: "Most Absences", subtext: "Students absent most often.", empty: "No absences", rows: analytics.leaders?.most_absent || [] }
   ];
   const visibleStudents = riskFilter ? analytics.individual.filter((student) => student.risk === riskFilter) : analytics.individual;
   const monthOptions = selectedStudent
@@ -1764,9 +1797,11 @@ function AnalyticsPanel({ analytics, loaded }: { analytics: AnalyticsPayload | n
                 <p className="text-[10px] font-bold uppercase leading-4 tracking-[0.12em] text-blue-100 sm:text-xs sm:tracking-[0.16em]">{card.label}</p>
                 <p className="mt-1 text-2xl font-bold sm:mt-2 sm:text-3xl">{card.value}</p>
                 <p className="mt-1 hidden min-h-10 text-sm font-semibold leading-5 text-white/70 sm:block">{card.subtext}</p>
-                <div className="mt-2 h-1 overflow-hidden rounded bg-white/10 sm:mt-4 sm:h-1.5">
-                  <div className={`h-full w-2/3 ${card.accent}`} />
-                </div>
+                {card.progress !== null ? (
+                  <div className="mt-2 h-1 overflow-hidden rounded bg-white/10 sm:mt-4 sm:h-1.5" role="img" aria-label={`${card.label}: ${card.progress}%`}>
+                    <div className={`h-full ${card.accent}`} style={{ width: `${card.progress}%` }} />
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>
@@ -1778,22 +1813,30 @@ function AnalyticsPanel({ analytics, loaded }: { analytics: AnalyticsPayload | n
             <p className="mt-1 text-sm font-semibold text-graphite">Quick view of top attendance patterns.</p>
           </div>
           <div className="grid gap-3 md:grid-cols-3 lg:gap-4">
-            {leaderGroups.map((group) => (
+            {leaderGroups.map((group) => {
+              const expanded = Boolean(expandedLeaders[group.key]);
+              const visibleRows = expanded ? group.rows : group.rows.slice(0, 3);
+              return (
               <div key={group.title} className="rounded border border-line bg-paper p-3 sm:p-4">
                 <h4 className="text-lg font-bold text-ink">{group.title}</h4>
                 <p className="mt-1 text-sm font-semibold text-graphite">{group.subtext}</p>
                 <div className="mt-4 grid gap-2">
-                  {group.rows.map((student, index) => (
+                  {visibleRows.map((student) => (
                     <div key={student.student_id} className="grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-2 rounded border border-line bg-white px-3 py-2 sm:grid-cols-[2rem_minmax(0,1fr)_auto]">
-                      <span className="font-mono text-xs font-bold text-graphite">{index + 1}</span>
+                      <span className="font-mono text-xs font-bold text-graphite">{student.rank}</span>
                       <span className="break-words text-sm font-bold text-ink">{student.full_name}</span>
                       <span className="col-start-2 text-xs font-bold text-graphite sm:col-start-auto">{student.label}</span>
                     </div>
                   ))}
-                  {!group.rows.length ? <p className="rounded border border-dashed border-line p-4 text-center text-sm text-graphite">No data yet.</p> : null}
+                  {!group.rows.length ? <p className="rounded border border-dashed border-line p-4 text-center text-sm text-graphite">{group.empty}</p> : null}
+                  {group.rows.length > 3 ? (
+                    <button type="button" onClick={() => setExpandedLeaders((current) => ({ ...current, [group.key]: !expanded }))} className="focus-ring min-h-11 rounded border border-line bg-white px-3 text-sm font-bold text-pool hover:border-pool">
+                      {expanded ? "Show less" : `View all (${group.rows.length})`}
+                    </button>
+                  ) : null}
                 </div>
               </div>
-            ))}
+            );})}
           </div>
         </section>
 
@@ -1868,9 +1911,10 @@ function AnalyticsPanel({ analytics, loaded }: { analytics: AnalyticsPayload | n
             </div>
           ) : null}
           <div className="grid gap-2">
-            <div className="hidden grid-cols-[minmax(180px,1.4fr)_90px_70px_80px_130px_100px_150px] gap-3 px-3 font-mono text-xs font-bold uppercase tracking-[0.14em] text-graphite xl:grid">
+            <div className="hidden grid-cols-[minmax(170px,1.4fr)_82px_70px_64px_70px_120px_90px_130px] gap-3 px-3 font-mono text-xs font-bold uppercase tracking-[0.12em] text-graphite xl:grid">
               <span>Student</span>
               <span>Attendance</span>
+              <span>On time</span>
               <span>Late</span>
               <span>Absent</span>
               <span>Trend</span>
@@ -1887,7 +1931,7 @@ function AnalyticsPanel({ analytics, loaded }: { analytics: AnalyticsPayload | n
                     setSelectedStudent(student);
                     setHistoryMonth("");
                   }}
-                  className={`focus-ring grid gap-3 rounded border border-line bg-paper p-3 text-left transition hover:border-[#2563eb] hover:bg-white sm:p-4 xl:grid-cols-[minmax(180px,1.4fr)_90px_70px_80px_130px_100px_150px] xl:items-center xl:p-3 ${tone.border}`}
+                  className={`focus-ring grid gap-3 rounded border border-line bg-paper p-3 text-left transition hover:border-[#2563eb] hover:bg-white sm:p-4 xl:grid-cols-[minmax(170px,1.4fr)_82px_70px_64px_70px_120px_90px_130px] xl:items-center xl:p-3 ${tone.border}`}
                 >
                   <div className="flex min-w-0 items-start justify-between gap-3 xl:block">
                     <div className="min-w-0 border-l-4 pl-3" style={{ borderColor: student.risk === "Good" ? "#16a34a" : student.risk === "Watch" ? "#d97706" : student.risk === "At Risk" ? "#ea580c" : "#dc2626" }}>
@@ -1896,16 +1940,20 @@ function AnalyticsPanel({ analytics, loaded }: { analytics: AnalyticsPayload | n
                     </div>
                     <span className={`inline-flex shrink-0 rounded border px-2 py-1 text-[11px] font-bold xl:hidden ${tone.border} ${tone.bg} ${tone.text}`}>{student.risk}</span>
                   </div>
-                  <dl className="grid grid-cols-3 divide-x divide-line rounded border border-line bg-white xl:contents">
+                  <dl className="grid grid-cols-2 rounded border border-line bg-white xl:contents">
                     <div className="px-2 py-2 xl:contents">
                       <dt className="font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-graphite xl:hidden">Attendance</dt>
                       <dd className="mt-0.5 text-sm font-bold text-ink xl:mt-0">{student.attendance_percentage}%</dd>
                     </div>
-                    <div className="px-2 py-2 xl:contents">
+                    <div className="border-l border-line px-2 py-2 xl:contents xl:border-0">
+                      <dt className="font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-graphite xl:hidden">On time</dt>
+                      <dd className="mt-0.5 text-sm font-bold text-graphite xl:mt-0">{student.on_time_count}</dd>
+                    </div>
+                    <div className="border-t border-line px-2 py-2 xl:contents xl:border-0">
                       <dt className="font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-graphite xl:hidden">Late</dt>
                       <dd className="mt-0.5 text-sm font-bold text-graphite xl:mt-0">{student.late_count}</dd>
                     </div>
-                    <div className="px-2 py-2 xl:contents">
+                    <div className="border-l border-t border-line px-2 py-2 xl:contents xl:border-0">
                       <dt className="font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-graphite xl:hidden">Absent</dt>
                       <dd className="mt-0.5 text-sm font-bold text-graphite xl:mt-0">{student.absent_count}</dd>
                     </div>
@@ -2055,6 +2103,8 @@ function AlertsPanel({
 }) {
   const [smsDraft, setSmsDraft] = useState<{ student: IndividualAnalytics; triggerType: AlertTrigger; message: string } | null>(null);
   const [sending, setSending] = useState(false);
+  const [mobileSettingsPanel, setMobileSettingsPanel] = useState<"automation" | "thresholds" | "messages">("automation");
+  const [expandedAttentionId, setExpandedAttentionId] = useState<string | null>(null);
 
   function openComposer(student: IndividualAnalytics, triggerType: AlertTrigger) {
     if (!alertSettings) return;
@@ -2078,10 +2128,14 @@ function AlertsPanel({
 
   return (
     <>
-      <section className="grid min-w-0 gap-5 xl:grid-cols-[420px_minmax(0,1fr)]">
-        <div className="min-w-0 rounded border border-line bg-white p-5 shadow-sm">
+      <section className="grid min-w-0 gap-4 lg:grid-cols-[360px_minmax(0,1fr)] xl:grid-cols-[420px_minmax(0,1fr)] xl:gap-5">
+        <div className="min-w-0 rounded border border-line bg-white p-3 shadow-sm sm:p-5">
           <h2 className="mb-4 text-2xl font-bold text-ink">SMS alerts</h2>
+          <div className="mb-3 grid grid-cols-3 gap-1 rounded border border-line bg-paper p-1 sm:hidden">
+            {([['automation', 'Automation'], ['thresholds', 'Thresholds'], ['messages', 'Messages']] as const).map(([value, label]) => <button key={value} type="button" onClick={() => setMobileSettingsPanel(value)} className={`focus-ring min-h-10 rounded px-1 text-[11px] font-bold ${mobileSettingsPanel === value ? "bg-white text-pool shadow-sm" : "text-graphite"}`}>{label}</button>)}
+          </div>
           <div className="grid gap-4">
+            <div className={`${mobileSettingsPanel === "automation" ? "grid" : "hidden"} gap-3 sm:grid`}>
               <label className="flex items-center justify-between rounded border border-line bg-paper px-3 py-3 text-sm font-bold text-graphite">
                 Automatic SMS
                 <input
@@ -2091,6 +2145,9 @@ function AlertsPanel({
                   className="h-5 w-5"
                 />
               </label>
+              <p className="rounded border border-line bg-paper px-3 py-3 text-sm leading-6 text-graphite">Automatic SMS sends only when a student lands exactly on a configured count.</p>
+            </div>
+            <div className={`${mobileSettingsPanel === "thresholds" ? "grid" : "hidden"} gap-3 sm:grid`}>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                 <label className="grid gap-2 text-sm font-bold text-graphite">
                   Late SMS at
@@ -2111,9 +2168,10 @@ function AlertsPanel({
                   />
                 </label>
               </div>
-              <p className="rounded border border-line bg-paper px-3 py-3 text-sm leading-6 text-graphite">
-                Automatic SMS sends only when a student lands exactly on one of these counts.
-              </p>
+              <p className="rounded border border-line bg-paper px-3 py-3 text-sm text-graphite">Period start: <span className="font-bold text-ink">{displayDateTime(alertSettings.alert_period_start)}</span></p>
+              <button type="button" onClick={() => saveAlertSettings(true)} disabled={savingAlerts} className="focus-ring min-h-11 rounded border border-line bg-white px-4 py-3 font-bold text-ink hover:border-pool disabled:opacity-60">Reset alert period</button>
+            </div>
+            <div className={`${mobileSettingsPanel === "messages" ? "grid" : "hidden"} gap-3 sm:grid`}>
               <label className="grid gap-2 text-sm font-bold text-graphite">
                 Late template
                 <textarea
@@ -2135,25 +2193,20 @@ function AlertsPanel({
               <p className="rounded border border-line bg-paper px-3 py-3 text-sm text-graphite">
                 Placeholders: <span className="font-mono text-xs font-bold text-ink">{"{student} {subject} {late_count} {absent_count}"}</span>
               </p>
-              <p className="rounded border border-line bg-paper px-3 py-3 text-sm text-graphite">
-                Period start: <span className="font-bold text-ink">{displayDateTime(alertSettings.alert_period_start)}</span>
-              </p>
+            </div>
               {alertSettings.schema_missing ? (
                 <p className="rounded border border-brass bg-orange-50 px-3 py-3 text-sm font-bold text-orange-800">
                   Run the updated Supabase schema before saving alert settings.
                 </p>
               ) : null}
-              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+              <div className="grid gap-2">
                 <ControlButton type="button" onClick={() => saveAlertSettings(false)} disabled={savingAlerts}>
                   Save alert settings
                 </ControlButton>
-                <button type="button" onClick={() => saveAlertSettings(true)} disabled={savingAlerts} className="focus-ring min-h-11 rounded border border-line bg-white px-4 py-3 font-bold text-ink hover:border-pool disabled:opacity-60">
-                  Reset alert period
-                </button>
               </div>
           </div>
         </div>
-        <div className="min-w-0 rounded border border-line bg-white p-5 shadow-sm">
+        <div className="min-w-0 rounded border border-line bg-white p-3 shadow-sm sm:p-5">
           <h2 className="mb-4 text-2xl font-bold text-ink">Needs attention</h2>
           <div className="grid gap-2">
             {(analytics?.needs_attention || []).map((student) => {
@@ -2164,8 +2217,23 @@ function AlertsPanel({
               const count = triggerType === "late" ? student.alert_late_count : student.alert_absent_count;
               const automaticNow = triggerType ? milestones.includes(count) : false;
               const nextAuto = triggerType ? nextMilestone(count + 1, milestones) : null;
+              const expanded = expandedAttentionId === student.student_id;
               return (
-                <div key={student.student_id} className="grid gap-3 rounded border border-line bg-paper p-3 lg:grid-cols-[1fr_120px_120px_120px] lg:items-center">
+                <div key={student.student_id} className="overflow-hidden rounded border border-line bg-paper">
+                  <div className="sm:hidden">
+                    <button type="button" onClick={() => setExpandedAttentionId(expanded ? null : student.student_id)} className="focus-ring flex min-h-[62px] w-full items-center justify-between gap-3 px-3 py-2 text-left" aria-expanded={expanded}>
+                      <span className="min-w-0"><span className="block break-words font-bold text-ink">{student.full_name}</span><span className="block font-mono text-xs text-graphite">Late {student.alert_late_count} · Absent {student.alert_absent_count}</span></span>
+                      <ChevronDown size={18} className={`shrink-0 text-graphite transition ${expanded ? "rotate-180" : ""}`} />
+                    </button>
+                    {expanded ? (
+                      <div className="grid gap-2 border-t border-line bg-white p-3">
+                        <div className="grid grid-cols-2 gap-2"><span className={`rounded border px-2 py-2 text-center text-xs font-bold ${triggerType === "absent" ? "border-red-200 bg-red-50 text-red-700" : triggerType === "late" ? "border-orange-200 bg-orange-50 text-orange-700" : "border-line bg-paper text-graphite"}`}>{triggerType === "absent" ? "Absent alert" : triggerType === "late" ? "Late alert" : "No threshold"}</span><span className={`rounded border px-2 py-2 text-center text-xs font-bold ${student.contact_number ? "border-green-200 bg-green-50 text-green-700" : "border-gray-300 bg-paper text-graphite"}`}>{student.contact_number ? "Has number" : "No number"}</span></div>
+                        {triggerType ? <p className="text-xs font-bold leading-5 text-graphite">{automaticNow ? "Automatic SMS milestone now" : nextAuto ? `Next automatic SMS at ${triggerType} ${nextAuto}` : "No next automatic SMS set"}</p> : null}
+                        <button type="button" onClick={() => triggerType && openComposer(student, triggerType)} disabled={!canSend} className="focus-ring min-h-11 rounded border border-line bg-paper px-3 text-sm font-bold text-ink disabled:opacity-50">Send SMS</button>
+                      </div>
+                    ) : null}
+                  </div>
+                <div className="hidden gap-3 p-3 sm:grid lg:grid-cols-[1fr_120px_120px_120px] lg:items-center">
                   <div>
                     <p className="font-bold text-ink">{student.full_name}</p>
                     <p className="font-mono text-xs text-graphite">
@@ -2195,6 +2263,7 @@ function AlertsPanel({
                     </button>
                   </div>
                 </div>
+                </div>
               );
             })}
             {!analytics?.needs_attention?.length ? <p className="rounded border border-dashed border-line p-5 text-center text-sm text-graphite">No students have reached the warning limits.</p> : null}
@@ -2203,7 +2272,7 @@ function AlertsPanel({
       </section>
 
       {smsDraft ? (
-        <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/35 px-3 py-4 sm:px-4 sm:py-8">
+        <div className="fixed inset-0 z-50 flex items-end overflow-y-auto bg-ink/45 px-2 pb-2 pt-12 sm:grid sm:place-items-center sm:px-4 sm:py-8">
           <section className="max-h-[calc(100vh-2rem)] w-full max-w-xl overflow-y-auto rounded border border-line bg-white p-4 shadow-soft sm:p-5">
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
@@ -2254,7 +2323,7 @@ function ReviewModal({
   onConfirm: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/35 px-3 py-4 sm:px-4 sm:py-8">
+    <div className="fixed inset-0 z-50 flex items-end overflow-y-auto bg-ink/45 px-2 pb-2 pt-12 sm:grid sm:place-items-center sm:px-4 sm:py-8">
       <section className="max-h-[calc(100vh-2rem)] w-full max-w-3xl overflow-y-auto rounded border border-line bg-white p-4 shadow-soft sm:p-5">
         <div className="mb-4 flex items-center justify-between gap-4">
           <h2 className="break-words text-2xl font-bold text-ink">{title}</h2>

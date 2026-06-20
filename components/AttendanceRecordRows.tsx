@@ -17,6 +17,11 @@ function exactTime(value: string | null) {
   });
 }
 
+function shortTime(value: string | null) {
+  if (!value) return "--";
+  return new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
 function initials(name: string) {
   return name
     .split(/\s+/)
@@ -127,6 +132,7 @@ export function AttendanceRecordRows({
 }) {
   const [proof, setProof] = useState<DashboardRecord | null>(null);
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
   const proofRecords = useMemo(() => records.filter((record) => Boolean(record.photo_url)), [records]);
 
   useEffect(() => {
@@ -175,41 +181,77 @@ export function AttendanceRecordRows({
       </div>
 
       <div className="grid gap-2">
-        {records.map((record) => (
-          <div
-            key={record.student_id}
-            className="grid grid-cols-[auto_1fr] gap-3 rounded border border-line bg-paper px-3 py-3 md:grid-cols-[auto_1fr_auto_auto_auto] md:items-center"
-          >
-            <StudentPhoto record={record} />
-            <div className="min-w-0">
-              <p className="break-words font-bold text-ink">{record.full_name}</p>
-              <p className="font-mono text-xs text-graphite">{record.student_number}</p>
+        {records.map((record) => {
+          const expanded = expandedStudentId === record.student_id;
+          const proofDeleted = Boolean(record.photo_deleted_at || record.notes?.toLowerCase().includes("proof photo deleted"));
+          return (
+            <div key={record.student_id} className="overflow-hidden rounded border border-line bg-paper">
+              <div className="md:hidden">
+                <button
+                  type="button"
+                  onClick={() => setExpandedStudentId(expanded ? null : record.student_id)}
+                  className="focus-ring grid min-h-[68px] w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-3 py-2 text-left"
+                  aria-expanded={expanded}
+                >
+                  <StudentPhoto record={record} />
+                  <span className="min-w-0">
+                    <span className="block break-words font-bold text-ink">{record.full_name}</span>
+                    <span className="block font-mono text-xs text-graphite">{record.student_number}</span>
+                  </span>
+                  <span className="grid justify-items-end gap-1">
+                    <span className="font-mono text-xs font-bold text-graphite">{shortTime(record.submitted_at)}</span>
+                    <ChevronDown size={17} className={`text-graphite transition ${expanded ? "rotate-180" : ""}`} />
+                  </span>
+                </button>
+                {expanded ? (
+                  <div className="grid gap-3 border-t border-line bg-white px-3 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-xs font-bold uppercase tracking-[0.12em] text-graphite">Exact time</span>
+                      <span className="font-mono text-sm font-bold text-ink">{exactTime(record.submitted_at)}</span>
+                    </div>
+                    <div className="flex min-h-11 items-center justify-between gap-3 border-y border-line py-2">
+                      <span className="text-xs font-bold uppercase tracking-[0.12em] text-graphite">Status</span>
+                      <StatusMenu record={record} sessionId={sessionId} onChanged={onChanged} />
+                    </div>
+                    {record.photo_url ? (
+                      <button type="button" onClick={() => setProof(record)} className="focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded border border-line bg-paper px-3 py-2 text-sm font-bold text-ink hover:border-pool">
+                        <Camera size={15} />
+                        View proof
+                      </button>
+                    ) : (
+                      <p className="rounded border border-dashed border-line px-3 py-2 text-center text-xs font-bold text-graphite">{proofDeleted ? "Proof deleted" : "No proof"}</p>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="hidden grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] items-center gap-3 px-3 py-3 md:grid">
+                <StudentPhoto record={record} />
+                <div className="min-w-0">
+                  <p className="break-words font-bold text-ink">{record.full_name}</p>
+                  <p className="font-mono text-xs text-graphite">{record.student_number}</p>
+                </div>
+                <span className="font-mono text-sm font-bold text-ink">{exactTime(record.submitted_at)}</span>
+                <StatusMenu record={record} sessionId={sessionId} onChanged={onChanged} />
+                {record.photo_url ? (
+                  <button type="button" onClick={() => setProof(record)} className="focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded border border-line bg-white px-3 py-2 text-xs font-bold text-ink hover:border-pool">
+                    <Camera size={14} />
+                    View proof
+                  </button>
+                ) : (
+                  <span className="text-xs font-bold text-graphite">{proofDeleted ? "Proof deleted" : "No proof"}</span>
+                )}
+              </div>
             </div>
-            <span className="font-mono text-sm font-bold text-ink">{exactTime(record.submitted_at)}</span>
-            <StatusMenu record={record} sessionId={sessionId} onChanged={onChanged} />
-            {record.photo_url ? (
-              <button
-                type="button"
-                onClick={() => setProof(record)}
-                className="focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded border border-line bg-white px-3 py-2 text-xs font-bold text-ink hover:border-pool"
-              >
-                <Camera size={14} />
-                View proof
-              </button>
-            ) : record.photo_deleted_at || record.notes?.toLowerCase().includes("proof photo deleted") ? (
-              <span className="text-xs font-bold text-graphite">Proof deleted</span>
-            ) : (
-              <span className="text-xs font-bold text-graphite">No proof</span>
-            )}
-          </div>
-        ))}
+          );
+        })}
         {!records.length ? <p className="rounded border border-dashed border-line p-5 text-center text-sm text-graphite">{emptyText}</p> : null}
       </div>
 
       {proof ? (
         <div className="fixed inset-0 z-[60] grid place-items-center overflow-y-auto bg-ink/55 px-3 py-4 sm:px-4 sm:py-8" role="dialog" aria-modal="true" aria-label={`Proof photo for ${proof.full_name}`}>
           <button type="button" aria-label="Close proof photo" onClick={() => setProof(null)} className="absolute inset-0 cursor-default" />
-          <section className="max-h-[calc(100vh-2rem)] w-full max-w-xl overflow-y-auto rounded border border-line bg-white p-4 shadow-soft sm:p-5">
+          <section className="relative z-10 max-h-[calc(100vh-1rem)] w-full max-w-xl overflow-y-auto rounded border border-line bg-white p-3 shadow-soft sm:max-h-[calc(100vh-2rem)] sm:p-5">
             <div className="mb-4 flex items-center justify-between gap-4">
               <div>
                 <h3 className="text-xl font-bold text-ink">{proof.full_name}</h3>
@@ -242,7 +284,7 @@ export function AttendanceRecordRows({
               </button>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 xl:grid-cols-4">
               {proofRecords.map((record, index) => (
                 <button
                   key={record.record_id || record.student_id}
@@ -256,8 +298,8 @@ export function AttendanceRecordRows({
                     <img src={record.photo_url || ""} alt={`Attendance proof for ${record.full_name}`} className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]" />
                     <span className="absolute left-2 top-2 rounded bg-ink/80 px-2 py-1 font-mono text-[10px] font-bold text-white">{String(index + 1).padStart(2, "0")}</span>
                   </div>
-                  <div className="p-3">
-                    <p className="truncate font-bold text-ink">{record.full_name}</p>
+                  <div className="p-2 sm:p-3">
+                    <p className="truncate text-sm font-bold text-ink sm:text-base">{record.full_name}</p>
                     <div className="mt-1 flex items-center justify-between gap-2">
                       <span className="truncate font-mono text-xs text-graphite">{record.student_number}</span>
                       <span className="shrink-0 font-mono text-xs font-bold text-graphite">{exactTime(record.submitted_at)}</span>

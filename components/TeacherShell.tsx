@@ -18,13 +18,7 @@ export function TeacherShell({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
 
-          <div className="relative flex shrink-0 items-center gap-2">
-            <Link href="/exports" className="focus-ring grid h-10 w-10 place-items-center rounded border border-transparent text-[#f7fbff] transition hover:border-[#9fb9d6]/28 hover:bg-white/[0.04]" aria-label="Export attendance">
-              <FileSpreadsheet size={20} />
-            </Link>
-            <Link href="/settings" className="focus-ring grid h-10 w-10 place-items-center rounded border border-transparent text-[#f7fbff] transition hover:border-[#9fb9d6]/28 hover:bg-white/[0.04]" aria-label="Settings">
-              <SlidersHorizontal size={20} />
-            </Link>
+          <div className="relative flex shrink-0 items-center">
             <button
               type="button"
               onClick={() => setMenuOpen((open) => !open)}
@@ -35,7 +29,16 @@ export function TeacherShell({ children }: { children: React.ReactNode }) {
               <MoreVertical size={21} />
             </button>
             {menuOpen ? (
-              <div className="absolute right-0 top-12 z-30 w-44 border border-[#9fb9d6]/28 bg-[#071b33] p-2 shadow-[0_20px_46px_rgba(0,0,0,0.28)]">
+              <div className="absolute right-0 top-12 z-30 w-52 rounded border border-[#9fb9d6]/28 bg-[#071b33] p-2 shadow-[0_20px_46px_rgba(0,0,0,0.28)]">
+                <Link href="/exports" onClick={() => setMenuOpen(false)} className="focus-ring flex min-h-11 w-full items-center gap-3 rounded px-3 text-sm font-bold text-[#d8e7f7] transition hover:bg-white/[0.06] hover:text-white">
+                  <FileSpreadsheet size={17} />
+                  Export attendance
+                </Link>
+                <Link href="/settings" onClick={() => setMenuOpen(false)} className="focus-ring flex min-h-11 w-full items-center gap-3 rounded px-3 text-sm font-bold text-[#d8e7f7] transition hover:bg-white/[0.06] hover:text-white">
+                  <SlidersHorizontal size={17} />
+                  Settings
+                </Link>
+                <div className="my-1 h-px bg-white/10" />
                 <form action="/api/logout" method="post">
                   <button
                     suppressHydrationWarning
@@ -61,7 +64,7 @@ export function TeacherShell({ children }: { children: React.ReactNode }) {
 
         <div className="hidden gap-3 px-5 py-4 md:grid md:grid-cols-[minmax(220px,1fr)_auto_auto] md:items-center lg:grid-cols-[minmax(320px,1fr)_auto_minmax(260px,1fr)] lg:gap-4 lg:px-8 lg:py-5">
           <Link href="/dashboard" className="focus-ring inline-flex w-fit items-center rounded px-1 py-1">
-            <span className="font-[family:var(--font-brand)] text-[20px] font-normal uppercase leading-none tracking-[0.075em] text-white lg:text-[22px] xl:text-[28px]">
+            <span className="whitespace-nowrap font-[family:var(--font-brand)] text-[16px] font-normal uppercase leading-none tracking-[0.05em] text-white lg:text-[22px] lg:tracking-[0.075em] xl:text-[28px]">
               CBA <span className="text-[#67c7ff]">Attendance Log</span>
             </span>
           </Link>

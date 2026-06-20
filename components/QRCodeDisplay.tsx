@@ -32,11 +32,11 @@ export function QRCodeDisplay({ link, children }: { link: string; children?: Rea
   }
 
   return (
-    <div className="rounded border border-line bg-white p-5 shadow-soft">
-      <div className="flex items-center justify-center rounded border border-line bg-white p-4">
+    <div className="min-w-0 rounded border border-line bg-white p-3 shadow-soft sm:p-5">
+      <div className="flex min-w-0 items-center justify-center rounded border border-line bg-white p-2 sm:p-4">
         {dataUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={dataUrl} alt="Attendance QR code" className="h-72 w-72" />
+          <img src={dataUrl} alt="Attendance QR code" className="aspect-square h-auto w-full max-w-72" />
         ) : (
           <QrCode className="text-graphite" size={64} />
         )}
