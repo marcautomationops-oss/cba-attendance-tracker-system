@@ -656,29 +656,39 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
     setError("");
     setNotice("");
     setImporting(true);
-    const form = new FormData();
-    form.set("file", file);
-    const response = await fetch(`/api/subjects/${subjectId}/students/import-excel`, { method: "POST", body: form });
-    const payload = await response.json();
-    setImporting(false);
-    if (!response.ok) return setError(payload.error || "Excel import failed.");
-    setImportRows(payload.rows || []);
+    try {
+      const form = new FormData();
+      form.set("file", file);
+      const response = await fetch(`/api/subjects/${subjectId}/students/import-excel`, { method: "POST", body: form });
+      const payload = await readJson(response, "Excel import API");
+      if (!response.ok) return setError(payload.error || "Excel import failed.");
+      setImportRows(payload.rows || []);
+    } catch {
+      setError("Excel import failed. Check the file and server connection.");
+    } finally {
+      setImporting(false);
+    }
   }
 
   async function saveImportRows() {
     if (!importRows) return;
     setSavingImport(true);
-    const response = await fetch(`/api/subjects/${subjectId}/students/import-excel`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action: "save", rows: importRows })
-    });
-    const payload = await response.json();
-    setSavingImport(false);
-    if (!response.ok) return setError(payload.error || "Reviewed rows could not be saved.");
-    setImportRows(null);
-    setNotice("Excel students saved.");
-    await load();
+    try {
+      const response = await fetch(`/api/subjects/${subjectId}/students/import-excel`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "save", rows: importRows })
+      });
+      const payload = await readJson(response, "Excel import save API");
+      if (!response.ok) return setError(payload.error || "Reviewed rows could not be saved.");
+      setImportRows(null);
+      setNotice("Excel students saved.");
+      await load();
+    } catch {
+      setError("Reviewed rows could not be saved. Check the server connection.");
+    } finally {
+      setSavingImport(false);
+    }
   }
 
   async function reviewPhotos(files: FileList | null) {
@@ -711,17 +721,22 @@ export function SubjectWorkspace({ sectionId, subjectId }: { sectionId: string; 
   async function savePhotos() {
     if (!photoReview) return;
     setSavingPhotos(true);
-    const response = await fetch(`/api/subjects/${subjectId}/students/photos`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action: "save", matched: photoReview.matched })
-    });
-    const payload = await response.json();
-    setSavingPhotos(false);
-    if (!response.ok) return setError(payload.error || "Photos could not be saved.");
-    setPhotoReview(null);
-    setNotice("Profile photos saved.");
-    await load();
+    try {
+      const response = await fetch(`/api/subjects/${subjectId}/students/photos`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "save", matched: photoReview.matched })
+      });
+      const payload = await readJson(response, "Photo save API");
+      if (!response.ok) return setError(payload.error || "Photos could not be saved.");
+      setPhotoReview(null);
+      setNotice("Profile photos saved.");
+      await load();
+    } catch {
+      setError("Photos could not be saved. Check the server connection.");
+    } finally {
+      setSavingPhotos(false);
+    }
   }
 
   async function saveAlertSettings(reset_period = false) {

@@ -16,9 +16,14 @@ export function parseImageDataUrl(dataUrl: string) {
 
 export async function signedStorageUrl(path: string | null, expiresIn = 60 * 10) {
   if (!path) return null;
-  const supabase = getSupabaseAdmin();
-  const { data } = await supabase.storage.from(ATTENDANCE_BUCKET).createSignedUrl(path, expiresIn);
-  return data?.signedUrl || null;
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase.storage.from(ATTENDANCE_BUCKET).createSignedUrl(path, expiresIn);
+    if (error) return null;
+    return data?.signedUrl || null;
+  } catch {
+    return null;
+  }
 }
 
 export function profilePhotoPath(studentNumber: string) {
